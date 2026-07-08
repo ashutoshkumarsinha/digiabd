@@ -177,9 +177,28 @@ services:
       - signoz_data:/var/lib/signoz
       - signoz_clickhouse:/var/lib/clickhouse
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: digiabd-caddy
+    depends_on:
+      api:
+        condition: service_started
+      keycloak:
+        condition: service_started
+      signoz:
+        condition: service_started
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
 volumes:
   postgres_data:
   minio_data:
   keycloak_db_data:
   signoz_data:
   signoz_clickhouse:
+  caddy_data:
+  caddy_config:

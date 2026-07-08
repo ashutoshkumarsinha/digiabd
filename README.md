@@ -120,4 +120,5 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [FR Traceability Matrix](docs/FR_TRACEABILITY.md)
 - [Test Matrix](docs/TEST_MATRIX.md)
 - [Observability Guide](docs/OBSERVABILITY.md)
+- [Caddy Reverse Proxy](docs/CADDY.md)
 - Live API docs at `/docs` when server is running

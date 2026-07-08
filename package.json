@@ -25,6 +25,8 @@
     "db:down": "docker compose down",
     "stack:up": "docker compose up -d",
     "stack:down": "docker compose down",
+    "proxy:up": "docker compose up -d caddy",
+    "proxy:down": "docker compose stop caddy",
     "migrate": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/001_initial_schema.sql"
   },
   "engines": {

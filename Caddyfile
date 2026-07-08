@@ -1,0 +1,24 @@
+:8088 {
+  encode gzip zstd
+
+  @api path /api/* /health /docs* /docs/* /documentation* /swagger* /openapi*
+  handle @api {
+    reverse_proxy api:3000
+  }
+
+  @keycloak path /auth/* /realms/* /resources/* /js/* /robots.txt
+  handle @keycloak {
+    reverse_proxy keycloak:8080
+  }
+
+  @signoz path /signoz/* /api/v1/dashboards* /api/v1/logs* /api/v1/traces* /api/v1/metrics*
+  handle @signoz {
+    # SigNoz standalone UI listens on 8080 inside the container.
+    reverse_proxy signoz:8080
+  }
+
+  handle {
+    respond "Digital ABD reverse proxy is running.\n\n- API: http://localhost:8088/api/v1/\n- Swagger: http://localhost:8088/docs\n- Keycloak: http://localhost:8088/auth\n- SigNoz: http://localhost:8088/signoz\n" 200
+  }
+}
+
