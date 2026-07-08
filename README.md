@@ -22,7 +22,7 @@ npm install
 npm run db:up
 ```
 
-This starts PostgreSQL (PostGIS), Redis, and MinIO. The database schema is applied automatically on first boot.
+This starts PostgreSQL (PostGIS), Redis, MinIO, and Redpanda (Kafka-compatible). The database schema is applied automatically on first boot.
 
 ### 3. Start the API (local dev)
 
@@ -90,16 +90,17 @@ digiabd/
 | Phase | Timeline | Status |
 |---|---|---|
 | Phase 1 — Foundation | Months 1–3 | Done |
-| Phase 2 — Scale | Months 4–6 | In progress |
-| Phase 3 — Resilience | Months 7–9 | Planned |
+| Phase 2 — Scale | Months 4–6 | Done |
+| Phase 3 — Resilience | Months 7–9 | In progress |
 | Phase 4 — Governance | Months 10–12 | Planned |
 
-See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md) and [docs/PHASE2_SCOPE.md](docs/PHASE2_SCOPE.md).
+See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_SCOPE.md), and [docs/PHASE3_SCOPE.md](docs/PHASE3_SCOPE.md).
 
 ## Documentation
 
 - [Functional Requirements (spec.md)](spec.md)
 - [MVP Scope](docs/MVP_SCOPE.md)
 - [Phase 2 Scope](docs/PHASE2_SCOPE.md)
+- [Phase 3 Scope](docs/PHASE3_SCOPE.md)
 - [OpenAPI Spec](docs/openapi.yaml)
 - Live API docs at `/docs` when server is running

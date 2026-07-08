@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
-import { getAuthUser } from '../middleware/auth.js';
 import type { AppConfig } from '../config.js';
 import { getAuthUser } from '../middleware/auth.js';
 import { getIdempotencyKey, storeIdempotency } from '../middleware/idempotency.js';
