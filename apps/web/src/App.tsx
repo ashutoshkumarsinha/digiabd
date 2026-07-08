@@ -127,6 +127,16 @@ export function App() {
     await loadGovernance();
   }
 
+  async function acknowledgeEscalation(eventId: string) {
+    await api(`/api/v1/governance/escalations/${eventId}/acknowledge`, { method: 'POST', body: '{}' });
+    await loadGovernance();
+  }
+
+  async function resolveEscalation(eventId: string) {
+    await api(`/api/v1/governance/escalations/${eventId}/resolve`, { method: 'POST', body: '{}' });
+    await loadGovernance();
+  }
+
   async function saveTrench() {
     await api(`/api/v1/segments/${segmentId}/trench`, {
       method: 'PUT',
@@ -281,8 +291,18 @@ export function App() {
               <p className="muted">No open escalations</p>
             ) : (
               <ul>{escalations.map((e: unknown) => {
-                const ev = e as { id: string; message: string; severity: string };
-                return <li key={ev.id}><strong>{ev.severity}</strong> — {ev.message}</li>;
+                const ev = e as { id: string; message: string; severity: string; status: string };
+                return (
+                  <li key={ev.id} className="row">
+                    <span><strong>{ev.severity}</strong> — {ev.message}</span>
+                    {ev.status === 'open' && (
+                      <button type="button" onClick={() => acknowledgeEscalation(ev.id)}>Acknowledge</button>
+                    )}
+                    {(ev.status === 'open' || ev.status === 'acknowledged') && (
+                      <button type="button" onClick={() => resolveEscalation(ev.id)}>Resolve</button>
+                    )}
+                  </li>
+                );
               })}</ul>
             )}
           </section>

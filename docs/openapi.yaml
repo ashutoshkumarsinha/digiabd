@@ -724,6 +724,44 @@ paths:
         '200':
           description: Escalation event list
 
+  /api/v1/governance/escalations/{eventId}/acknowledge:
+    post:
+      tags: [Governance]
+      summary: Acknowledge an open escalation event
+      operationId: acknowledgeEscalation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Escalation marked acknowledged
+        '404':
+          description: Event not found
+        '409':
+          description: Invalid status transition
+
+  /api/v1/governance/escalations/{eventId}/resolve:
+    post:
+      tags: [Governance]
+      summary: Resolve an open or acknowledged escalation event
+      operationId: resolveEscalation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Escalation marked resolved
+        '404':
+          description: Event not found
+        '409':
+          description: Invalid status transition
+
   /api/v1/governance/executive/summary:
     get:
       tags: [Governance]

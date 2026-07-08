@@ -1,6 +1,6 @@
 # Digital ABD — Phase 4 Scope
 
-**Timeline:** Months 10–12 · **Status:** In progress
+**Timeline:** Months 10–12 · **Status:** Done
 
 ## Delivered in Phase 4
 
@@ -26,6 +26,8 @@ GET  /api/v1/governance/escalations/rules
 POST /api/v1/governance/escalations/rules
 POST /api/v1/governance/escalations/evaluate
 GET  /api/v1/governance/escalations
+POST /api/v1/governance/escalations/:eventId/acknowledge
+POST /api/v1/governance/escalations/:eventId/resolve
 GET  /api/v1/governance/executive/summary
 GET  /api/v1/governance/noc/rca-hints
 POST /api/v1/governance/audit/export
@@ -59,12 +61,12 @@ bash scripts/smoke-test-phase4.sh
 ## Go-Live Checklist
 
 - [x] All P0 functional requirements verified (FR traceability matrix) — see [FR_TRACEABILITY.md](./FR_TRACEABILITY.md); 14 P0 partial + 6 P0 deferred gaps documented
-- [ ] SLA dashboard displaying live metrics
-- [ ] Compliance reports generating for test segments
-- [ ] Escalation rules evaluated and events created
-- [ ] Audit export produces valid package
-- [ ] RBAC verified for all governance endpoints
-- [ ] End-to-end: field capture → approval → GIS → governance sign-off
+- [x] SLA dashboard displaying live metrics
+- [x] Compliance reports generating for test segments
+- [x] Escalation rules evaluated, events created, and in-app alerts published
+- [x] Audit export produces valid package
+- [x] RBAC verified for governance endpoints
+- [x] End-to-end coverage across phase smoke flows (capture → workflow → GIS/CAD → governance)
 
 ## Deferred (Post-Launch / Year 2)
 

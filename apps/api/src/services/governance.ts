@@ -247,6 +247,49 @@ export async function createEscalationRule(
   return rows[0];
 }
 
+async function createEscalationEventIfNeeded(client: DbClient, params: {
+  orgId: string;
+  ruleId: string;
+  projectId: string;
+  triggerType: string;
+  severity: string;
+  message: string;
+}) {
+  const existing = await client.query(
+    `SELECT id FROM escalation_events
+     WHERE org_id = $1 AND rule_id = $2 AND project_id = $3 AND trigger_type = $4 AND status = 'open'
+     LIMIT 1`,
+    [params.orgId, params.ruleId, params.projectId, params.triggerType],
+  );
+  if (existing.rows[0]?.id) {
+    return { eventId: existing.rows[0].id as string, created: false };
+  }
+
+  const inserted = await client.query(
+    `INSERT INTO escalation_events (org_id, rule_id, project_id, trigger_type, severity, message)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id`,
+    [params.orgId, params.ruleId, params.projectId, params.triggerType, params.severity, params.message],
+  );
+
+  await client.query(
+    `INSERT INTO notifications (org_id, user_id, channel, event_type, title, body, metadata)
+     VALUES ($1, NULL, 'in_app', 'governance.escalation.triggered', $2, $3, $4::jsonb)`,
+    [
+      params.orgId,
+      `Governance escalation (${params.severity})`,
+      params.message,
+      JSON.stringify({
+        trigger_type: params.triggerType,
+        project_id: params.projectId,
+        escalation_event_id: inserted.rows[0].id,
+      }),
+    ],
+  );
+
+  return { eventId: inserted.rows[0].id as string, created: true };
+}
+
 export async function evaluateEscalations(client: DbClient, orgId: string, projectId?: string) {
   const rules = await listEscalationRules(client, orgId);
   const triggered: Array<{ rule_id: string; message: string; severity: string; event_id?: string }> = [];
@@ -266,13 +309,17 @@ export async function evaluateEscalations(client: DbClient, orgId: string, proje
 
       for (const row of rows) {
         const message = `Project "${row.name}" ABD completeness ${row.avg_completeness}% below threshold ${rule.threshold}%`;
-        const { rows: inserted } = await client.query(
-          `INSERT INTO escalation_events (org_id, rule_id, project_id, trigger_type, severity, message)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING id`,
-          [orgId, rule.id, row.id, rule.trigger_type, rule.severity, message],
-        );
-        triggered.push({ rule_id: rule.id, message, severity: rule.severity, event_id: inserted[0].id });
+        const result = await createEscalationEventIfNeeded(client, {
+          orgId,
+          ruleId: rule.id,
+          projectId: row.id,
+          triggerType: rule.trigger_type,
+          severity: rule.severity,
+          message,
+        });
+        if (result.created) {
+          triggered.push({ rule_id: rule.id, message, severity: rule.severity, event_id: result.eventId });
+        }
       }
     }
 
@@ -292,12 +339,17 @@ export async function evaluateEscalations(client: DbClient, orgId: string, proje
 
       for (const row of rows) {
         const message = `Project "${row.name}" has ${row.open_count} open deviation(s) (threshold: ${rule.threshold})`;
-        await client.query(
-          `INSERT INTO escalation_events (org_id, rule_id, project_id, trigger_type, severity, message)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [orgId, rule.id, row.id, rule.trigger_type, rule.severity, message],
-        );
-        triggered.push({ rule_id: rule.id, message, severity: rule.severity });
+        const result = await createEscalationEventIfNeeded(client, {
+          orgId,
+          ruleId: rule.id,
+          projectId: row.id,
+          triggerType: rule.trigger_type,
+          severity: rule.severity,
+          message,
+        });
+        if (result.created) {
+          triggered.push({ rule_id: rule.id, message, severity: rule.severity, event_id: result.eventId });
+        }
       }
     }
   }
@@ -313,6 +365,62 @@ export async function listEscalationEvents(client: DbClient, orgId: string, stat
     status ? [orgId, status] : [orgId],
   );
   return rows;
+}
+
+type EscalationEventStatus = 'open' | 'acknowledged' | 'resolved';
+
+export async function updateEscalationEventStatus(
+  client: DbClient,
+  orgId: string,
+  eventId: string,
+  nextStatus: EscalationEventStatus,
+  actorId: string,
+) {
+  const { rows: existing } = await client.query(
+    `SELECT * FROM escalation_events WHERE org_id = $1 AND id = $2`,
+    [orgId, eventId],
+  );
+  const event = existing[0];
+  if (!event) return { ok: false as const, reason: 'not_found' as const };
+
+  const currentStatus = event.status as EscalationEventStatus;
+  const allowed: Record<EscalationEventStatus, EscalationEventStatus[]> = {
+    open: ['acknowledged', 'resolved'],
+    acknowledged: ['resolved'],
+    resolved: [],
+  };
+
+  if (!allowed[currentStatus].includes(nextStatus)) {
+    return {
+      ok: false as const,
+      reason: 'invalid_transition' as const,
+      current_status: currentStatus,
+      requested_status: nextStatus,
+    };
+  }
+
+  const { rows } = await client.query(
+    `UPDATE escalation_events
+     SET status = $3,
+         resolved_at = CASE WHEN $3 = 'resolved' THEN NOW() ELSE resolved_at END
+     WHERE org_id = $1 AND id = $2
+     RETURNING *`,
+    [orgId, eventId, nextStatus],
+  );
+
+  await client.query(
+    `INSERT INTO audit_logs (org_id, entity_type, entity_id, action, actor_id, after_state)
+     VALUES ($1, 'escalation_event', $2, $3, $4, $5::jsonb)`,
+    [
+      orgId,
+      eventId,
+      `escalation.${nextStatus}`,
+      actorId,
+      JSON.stringify({ status: nextStatus, previous_status: currentStatus }),
+    ],
+  );
+
+  return { ok: true as const, event: rows[0] };
 }
 
 export async function getExecutiveSummary(client: DbClient, orgId: string) {

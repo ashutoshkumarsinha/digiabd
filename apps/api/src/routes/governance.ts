@@ -105,6 +105,62 @@ export async function registerGovernanceRoutes(app: FastifyInstance, pool: pg.Po
     },
   );
 
+  app.post<{ Params: { eventId: string } }>(
+    '/api/v1/governance/escalations/:eventId/acknowledge',
+    { preHandler: [app.authenticate, requireRoles('program_manager', 'enterprise_admin', 'inspector_oic')] },
+    async (request, reply) => {
+      const user = getAuthUser(request);
+      const result = await withOrgContext(pool, user.orgId, (client) =>
+        governance.updateEscalationEventStatus(client, user.orgId, request.params.eventId, 'acknowledged', user.sub),
+      );
+      if (!result.ok) {
+        if (result.reason === 'not_found') {
+          return reply.status(404).send({
+            type: 'https://digiabd.io/errors/not-found',
+            title: 'Not Found',
+            status: 404,
+            detail: 'Escalation event not found',
+          });
+        }
+        return reply.status(409).send({
+          type: 'https://digiabd.io/errors/conflict',
+          title: 'Invalid Status Transition',
+          status: 409,
+          detail: `Cannot acknowledge escalation in status "${result.current_status}"`,
+        });
+      }
+      return result.event;
+    },
+  );
+
+  app.post<{ Params: { eventId: string } }>(
+    '/api/v1/governance/escalations/:eventId/resolve',
+    { preHandler: [app.authenticate, requireRoles('program_manager', 'enterprise_admin', 'inspector_oic')] },
+    async (request, reply) => {
+      const user = getAuthUser(request);
+      const result = await withOrgContext(pool, user.orgId, (client) =>
+        governance.updateEscalationEventStatus(client, user.orgId, request.params.eventId, 'resolved', user.sub),
+      );
+      if (!result.ok) {
+        if (result.reason === 'not_found') {
+          return reply.status(404).send({
+            type: 'https://digiabd.io/errors/not-found',
+            title: 'Not Found',
+            status: 404,
+            detail: 'Escalation event not found',
+          });
+        }
+        return reply.status(409).send({
+          type: 'https://digiabd.io/errors/conflict',
+          title: 'Invalid Status Transition',
+          status: 409,
+          detail: `Cannot resolve escalation in status "${result.current_status}"`,
+        });
+      }
+      return result.event;
+    },
+  );
+
   app.get(
     '/api/v1/governance/executive/summary',
     { preHandler: [app.authenticate, requireRoles('program_manager', 'enterprise_admin', 'auditor')] },

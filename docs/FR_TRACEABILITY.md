@@ -89,7 +89,7 @@ P0 partial/deferred items are the primary go-live gaps.
 | FR-052 | MTBF/MTTR SLA metrics | `GET /api/v1/governance/projects/:projectId/sla` | Implemented | `scripts/smoke-test-phase4.sh` |
 | FR-053 | Configurable escalation matrices | `POST/GET /api/v1/governance/escalations/*` | Implemented | `scripts/smoke-test-phase4.sh` |
 | FR-054 | RCA hints (fault ↔ deviation) | `GET /api/v1/governance/noc/rca-hints` | Implemented | `scripts/smoke-test-phase4.sh` |
-| FR-055 | Completeness threshold alerts | `POST /api/v1/governance/escalations/evaluate` (`completeness_below`) | Partial | `scripts/smoke-test-phase4.sh` |
+| FR-055 | Completeness threshold alerts | `POST /api/v1/governance/escalations/evaluate` (`completeness_below`) + `GET /api/v1/notifications` | Implemented | `scripts/smoke-test-phase4.sh`; `apps/api/src/__tests__/governance.routes.test.ts` |
 
 ---
 
@@ -199,6 +199,8 @@ All endpoints below are documented in [openapi.yaml](./openapi.yaml).
 | GET/POST | `/api/v1/governance/escalations/rules` | FR-053 |
 | POST | `/api/v1/governance/escalations/evaluate` | FR-053, FR-055 |
 | GET | `/api/v1/governance/escalations` | FR-053 |
+| POST | `/api/v1/governance/escalations/:eventId/acknowledge` | FR-053 |
+| POST | `/api/v1/governance/escalations/:eventId/resolve` | FR-053 |
 | GET | `/api/v1/governance/executive/summary` | FR-077 |
 | GET | `/api/v1/governance/noc/rca-hints` | FR-054 |
 | POST | `/api/v1/governance/audit/export` | FR-022, FR-033 |

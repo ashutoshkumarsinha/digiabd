@@ -58,6 +58,17 @@ describe('Governance routes (Phase 4)', () => {
       payload: { project_id: PROJECT_ID },
     });
     expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as { triggered_count: number };
+    expect(body.triggered_count).toBeGreaterThanOrEqual(0);
+
+    const notifications = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications',
+      headers: ctx.authHeader(ctx.tokens.admin),
+    });
+    expect(notifications.statusCode).toBe(200);
+    const parsed = JSON.parse(notifications.body) as Array<{ event_type: string }>;
+    expect(parsed.some((n) => n.event_type === 'governance.escalation.triggered')).toBe(true);
   });
 
   it('GET /api/v1/governance/escalations lists events (FR-053)', async () => {
@@ -67,6 +78,43 @@ describe('Governance routes (Phase 4)', () => {
       headers: ctx.authHeader(ctx.tokens.admin),
     });
     expect(res.statusCode).toBe(200);
+  });
+
+  it('POST acknowledge/resolve manages escalation lifecycle (FR-053)', async () => {
+    const listRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/v1/governance/escalations?status=open',
+      headers: ctx.authHeader(ctx.tokens.admin),
+    });
+    expect(listRes.statusCode).toBe(200);
+    const events = JSON.parse(listRes.body) as Array<{ id: string; status: string }>;
+    expect(events.length).toBeGreaterThan(0);
+
+    const eventId = events[0].id;
+    const ackRes = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/v1/governance/escalations/${eventId}/acknowledge`,
+      headers: ctx.authHeader(ctx.tokens.admin),
+    });
+    expect(ackRes.statusCode).toBe(200);
+    expect(JSON.parse(ackRes.body).status).toBe('acknowledged');
+
+    const resolveRes = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/v1/governance/escalations/${eventId}/resolve`,
+      headers: ctx.authHeader(ctx.tokens.admin),
+    });
+    expect(resolveRes.statusCode).toBe(200);
+    const resolved = JSON.parse(resolveRes.body) as { status: string; resolved_at: string | null };
+    expect(resolved.status).toBe('resolved');
+    expect(resolved.resolved_at).toBeTruthy();
+
+    const repeatResolve = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/v1/governance/escalations/${eventId}/resolve`,
+      headers: ctx.authHeader(ctx.tokens.admin),
+    });
+    expect(repeatResolve.statusCode).toBe(409);
   });
 
   it('GET /api/v1/governance/executive/summary returns rollup (FR-077)', async () => {

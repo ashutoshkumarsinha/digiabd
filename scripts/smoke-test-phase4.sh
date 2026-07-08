@@ -42,8 +42,20 @@ curl -sf -X POST "$API_URL/api/v1/governance/escalations/evaluate" \
   -d "{\"project_id\":\"$PROJECT_ID\"}" | "$JQ_BIN" '.triggered_count'
 
 echo "==> List escalations"
-curl -sf "$API_URL/api/v1/governance/escalations" \
-  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" 'length'
+EVENT_ID=$(curl -sf "$API_URL/api/v1/governance/escalations?status=open" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" -r '.[0].id // empty')
+
+if [[ -n "$EVENT_ID" ]]; then
+  echo "==> Acknowledge escalation $EVENT_ID"
+  curl -sf -X POST "$API_URL/api/v1/governance/escalations/$EVENT_ID/acknowledge" \
+    -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.status'
+
+  echo "==> Resolve escalation $EVENT_ID"
+  curl -sf -X POST "$API_URL/api/v1/governance/escalations/$EVENT_ID/resolve" \
+    -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.status, .resolved_at'
+else
+  echo "==> No open escalations to acknowledge/resolve (skipped)"
+fi
 
 echo "==> RCA hints"
 curl -sf "$API_URL/api/v1/governance/noc/rca-hints?chainage=2500" \

@@ -105,7 +105,7 @@ digiabd/
 | Phase 1 — Foundation | Months 1–3 | Done |
 | Phase 2 — Scale | Months 4–6 | Done |
 | Phase 3 — Resilience | Months 7–9 | Done |
-| Phase 4 — Governance | Months 10–12 | In progress |
+| Phase 4 — Governance | Months 10–12 | Done |
 
 See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_SCOPE.md), [docs/PHASE3_SCOPE.md](docs/PHASE3_SCOPE.md), and [docs/PHASE4_SCOPE.md](docs/PHASE4_SCOPE.md).
 
