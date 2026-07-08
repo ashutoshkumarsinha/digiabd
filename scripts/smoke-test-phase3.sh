@@ -1,41 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_URL="${API_URL:-http://localhost:3000}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
 
 echo "==> Health check (Phase 3)"
-curl -sf "$API_URL/health" | jq .
+curl -sf "$API_URL/health" | "$JQ_BIN" .
 
-TOKEN=$(curl -sf -X POST "$API_URL/api/v1/auth/login" \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"engineer@demo.telecom"}' | jq -r .access_token)
+TOKEN=$(login_token "${SMOKE_EMAIL:-engineer@demo.telecom}")
 
-ROUTE_ID="d0000000-0000-4000-8000-000000000001"
+ROUTE_ID="${ROUTE_ID:-d0000000-0000-4000-8000-000000000001}"
 
 echo "==> Queue ETL job"
 curl -sf -X POST "$API_URL/api/v1/etl/routes/$ROUTE_ID/jobs" \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"job_type":"gis_layer_refresh"}' | jq .
+  -d '{"job_type":"gis_layer_refresh"}' | "$JQ_BIN" .
 
 echo "==> List ETL jobs"
 curl -sf "$API_URL/api/v1/etl/jobs?route_id=$ROUTE_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq 'length'
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" 'length'
 
 echo "==> GeoJSON export"
 curl -sf "$API_URL/api/v1/gis/routes/$ROUTE_ID/geojson" \
-  -H "Authorization: Bearer $TOKEN" | jq '.type'
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.type'
 
 echo "==> CAD generate"
 curl -sf -X POST "$API_URL/api/v1/cad/routes/$ROUTE_ID/generate" \
-  -H "Authorization: Bearer $TOKEN" | jq '.format'
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.format'
 
 echo "==> CAD artifacts"
 curl -sf "$API_URL/api/v1/cad/routes/$ROUTE_ID/artifacts" \
-  -H "Authorization: Bearer $TOKEN" | jq 'length'
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" 'length'
 
 echo "==> WMS capabilities"
 curl -sf "$API_URL/api/v1/gis/wms/capabilities" \
-  -H "Authorization: Bearer $TOKEN" | jq '.service'
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.service'
 
 echo "==> Phase 3 smoke test passed"

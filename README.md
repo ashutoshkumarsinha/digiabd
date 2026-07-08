@@ -124,3 +124,23 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [Packer image builds](docs/PACKER.md)
 - [Helm deployment](docs/HELM.md)
 - Live API docs at `/docs` when server is running
+
+## Common Commands
+
+Using npm:
+
+- `npm run setup`
+- `npm run db:up && npm run db:migrate`
+- `npm run dev` / `npm run dev:web`
+- `npm run smoke`, `npm run smoke:phase2`, `npm run smoke:phase3`, `npm run smoke:phase4`
+- `npm run images:build`
+- `npm run helm:install`
+
+Using Make:
+
+- `make help`
+- `make infra-up`, `make infra-down`
+- `make db-up`, `make db-migrate`
+- `make smoke4`
+- `make images-build`
+- `make helm-install`
