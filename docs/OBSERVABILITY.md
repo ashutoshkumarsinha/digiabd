@@ -43,6 +43,36 @@ SigNoz endpoints:
 - OTLP gRPC: `localhost:4317`
 - OTLP HTTP: `localhost:4318`
 
+## Prebuilt dashboard
+
+A ready-to-import dashboard is included at:
+
+- `observability/signoz/digiabd-api-dashboard.v5.json`
+- `observability/signoz/digiabd-sre-dashboard.v5.json`
+
+Import in SigNoz:
+
+1. Open `http://localhost:8080`
+2. Go to **Dashboards**
+3. Click **Import JSON**
+4. Select `observability/signoz/digiabd-api-dashboard.v5.json`
+5. Save as `Digital ABD API Monitoring`
+
+Panels included:
+
+- API throughput (traces)
+- API p95 latency (traces)
+- API error spans (traces)
+- Log volume by severity (logs)
+- Top routes by average latency (traces)
+
+The SRE dashboard includes:
+
+- Request rate + 5xx counts (server spans)
+- Postgres p95 latency (client spans)
+- Redis p95 latency (client spans)
+- Slowest spans (avg ms)
+
 ## Verification
 
 1. Start SigNoz and API.

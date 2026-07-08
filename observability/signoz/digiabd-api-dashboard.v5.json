@@ -1,0 +1,210 @@
+{
+  "title": "Digital ABD API Monitoring",
+  "name": "digiabd-api-monitoring",
+  "description": "Operational monitoring dashboard for digiabd-api service (traces, metrics, logs).",
+  "tags": [
+    "digiabd",
+    "api",
+    "otel",
+    "signoz"
+  ],
+  "version": "v5",
+  "uploadedGrafana": false,
+  "layout": [
+    {
+      "h": 8,
+      "i": "widget-throughput",
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "h": 8,
+      "i": "widget-latency-p95",
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 0
+    },
+    {
+      "h": 8,
+      "i": "widget-error-rate",
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 8
+    },
+    {
+      "h": 8,
+      "i": "widget-log-volume",
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 8
+    },
+    {
+      "h": 10,
+      "i": "widget-top-routes",
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 16
+    }
+  ],
+  "widgets": [
+    {
+      "id": "widget-throughput",
+      "title": "API Throughput (req/s)",
+      "description": "Count of server spans for digiabd-api.",
+      "panelTypes": "graph",
+      "yAxisUnit": "short",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [
+                {
+                  "expression": "count()"
+                }
+              ],
+              "filter": {
+                "expression": "serviceName = 'digiabd-api' AND spanKind = 'Server'"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-latency-p95",
+      "title": "API Latency p95 (ms)",
+      "description": "p95 server span latency for digiabd-api.",
+      "panelTypes": "graph",
+      "yAxisUnit": "ms",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [
+                {
+                  "expression": "quantile(0.95)(durationNano) / 1000000"
+                }
+              ],
+              "filter": {
+                "expression": "serviceName = 'digiabd-api' AND spanKind = 'Server'"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-error-rate",
+      "title": "API Error Spans",
+      "description": "Server span error count (statusCode=STATUS_CODE_ERROR).",
+      "panelTypes": "graph",
+      "yAxisUnit": "short",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [
+                {
+                  "expression": "count()"
+                }
+              ],
+              "filter": {
+                "expression": "serviceName = 'digiabd-api' AND spanKind = 'Server' AND statusCode = 'STATUS_CODE_ERROR'"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-log-volume",
+      "title": "Log Volume by Severity",
+      "description": "OTEL log count grouped by severity text.",
+      "panelTypes": "graph",
+      "yAxisUnit": "short",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "logs",
+              "aggregations": [
+                {
+                  "expression": "count()"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "severityText"
+                }
+              ],
+              "filter": {
+                "expression": "serviceName = 'digiabd-api'"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-top-routes",
+      "title": "Top Routes by Avg Latency",
+      "description": "Average latency by HTTP route (server spans).",
+      "panelTypes": "table",
+      "yAxisUnit": "ms",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [
+                {
+                  "expression": "avg(durationNano) / 1000000"
+                }
+              ],
+              "groupBy": [
+                {
+                  "key": "httpRoute"
+                }
+              ],
+              "orderBy": [
+                {
+                  "columnName": "avg(durationNano) / 1000000",
+                  "order": "desc"
+                }
+              ],
+              "filter": {
+                "expression": "serviceName = 'digiabd-api' AND spanKind = 'Server' AND httpRoute EXISTS"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variables": {},
+  "panelMap": {}
+}

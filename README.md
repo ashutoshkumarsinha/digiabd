@@ -51,6 +51,7 @@ npm run observability:up
 - OTLP HTTP ingest: `localhost:4318`
 
 The API exports traces, metrics, and OTEL logs via `OTEL_EXPORTER_OTLP_ENDPOINT`.
+Import the prebuilt SigNoz dashboard from `observability/signoz/digiabd-api-dashboard.v5.json`.
 
 ## Demo Users
 

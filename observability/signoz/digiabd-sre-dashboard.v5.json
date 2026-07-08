@@ -1,0 +1,129 @@
+{
+  "title": "Digital ABD — SRE Overview",
+  "name": "digiabd-sre-overview",
+  "description": "SRE overview for API + dependencies using trace- and log-derived signals (works without infra exporters).",
+  "tags": [
+    "digiabd",
+    "sre",
+    "operations",
+    "otel",
+    "signoz"
+  ],
+  "version": "v5",
+  "uploadedGrafana": false,
+  "layout": [
+    { "h": 8, "i": "widget-req-rate", "moved": false, "static": false, "w": 6, "x": 0, "y": 0 },
+    { "h": 8, "i": "widget-5xx", "moved": false, "static": false, "w": 6, "x": 6, "y": 0 },
+    { "h": 8, "i": "widget-db-p95", "moved": false, "static": false, "w": 6, "x": 0, "y": 8 },
+    { "h": 8, "i": "widget-redis-p95", "moved": false, "static": false, "w": 6, "x": 6, "y": 8 },
+    { "h": 10, "i": "widget-slowest-spans", "moved": false, "static": false, "w": 12, "x": 0, "y": 16 }
+  ],
+  "widgets": [
+    {
+      "id": "widget-req-rate",
+      "title": "Request Rate (server spans)",
+      "description": "Server span throughput (useful when infra metrics are unavailable).",
+      "panelTypes": "graph",
+      "yAxisUnit": "short",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [{ "expression": "count()" }],
+              "filter": { "expression": "serviceName = 'digiabd-api' AND spanKind = 'Server'" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-5xx",
+      "title": "5xx Responses (server spans)",
+      "description": "Count of server spans with HTTP status >= 500 (best-effort based on span tags).",
+      "panelTypes": "graph",
+      "yAxisUnit": "short",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [{ "expression": "count()" }],
+              "filter": {
+                "expression": "serviceName = 'digiabd-api' AND spanKind = 'Server' AND (httpStatusCode >= 500 OR http.status_code >= 500)"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-db-p95",
+      "title": "Postgres span latency p95 (ms)",
+      "description": "p95 latency of postgres client spans (db.system=postgresql).",
+      "panelTypes": "graph",
+      "yAxisUnit": "ms",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [{ "expression": "quantile(0.95)(durationNano) / 1000000" }],
+              "filter": { "expression": "serviceName = 'digiabd-api' AND (dbSystem = 'postgresql' OR db.system = 'postgresql')" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-redis-p95",
+      "title": "Redis span latency p95 (ms)",
+      "description": "p95 latency of redis client spans (db.system=redis).",
+      "panelTypes": "graph",
+      "yAxisUnit": "ms",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [{ "expression": "quantile(0.95)(durationNano) / 1000000" }],
+              "filter": { "expression": "serviceName = 'digiabd-api' AND (dbSystem = 'redis' OR db.system = 'redis')" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "widget-slowest-spans",
+      "title": "Slowest spans (avg ms)",
+      "description": "Top spans by average latency (use to spot DB, Redis, Kafka hotspots).",
+      "panelTypes": "table",
+      "yAxisUnit": "ms",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "dataSource": "traces",
+              "aggregations": [{ "expression": "avg(durationNano) / 1000000" }],
+              "groupBy": [{ "key": "name" }],
+              "orderBy": [{ "columnName": "avg(durationNano) / 1000000", "order": "desc" }],
+              "filter": { "expression": "serviceName = 'digiabd-api'" }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variables": {},
+  "panelMap": {}
+}
