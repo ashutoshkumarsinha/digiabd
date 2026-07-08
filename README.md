@@ -123,6 +123,9 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [Caddy Reverse Proxy](docs/CADDY.md)
 - [Packer image builds](docs/PACKER.md)
 - [Helm deployment](docs/HELM.md)
+- [High-Level Design (HLD)](docs/HLD.md)
+- [End User Guide](docs/END_USER_GUIDE.md)
+- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
 - [Code Flow Guide](docs/CODE_FLOW.md)
 - Live API docs at `/docs` when server is running
 

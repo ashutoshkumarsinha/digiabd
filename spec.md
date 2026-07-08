@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | **Document ID** | DIGIABD-FRD-001 |
-| **Version** | 2.0 |
-| **Status** | Draft — Enterprise Review |
+| **Version** | 2.1 |
+| **Status** | Living Document — Implementation Aligned |
 | **Classification** | Internal — Confidential |
-| **Last Updated** | 2026-07-07 |
+| **Last Updated** | 2026-07-08 |
 | **Owner** | Digital ABD Program Team |
 | **Approvers** | CTO, Head of Network Operations, Chief Information Security Officer |
 
@@ -55,6 +55,7 @@
 36. [Change Management & Release Strategy](#36-change-management--release-strategy)
 37. [Incident Management & Enterprise Support](#37-incident-management--enterprise-support)
 38. [Regulatory & Certification Alignment](#38-regulatory--certification-alignment)
+39. [Implementation Status Addendum (v0.4)](#39-implementation-status-addendum-v04)
 
 ---
 
@@ -1872,6 +1873,73 @@ flowchart TB
 
 ---
 
+## 39. Implementation Status Addendum (v0.4)
+
+This section aligns the FRD with the current repository implementation state (`v0.4.0`) and supersedes any older assumptions where code and this document differ.
+
+### 39.1 Implemented Platform Scope
+
+| Area | Current State |
+|---|---|
+| API | Fastify + TypeScript, OpenAPI documented in `docs/openapi.yaml` |
+| Mobile | Expo app with offline queue + sync batch flow |
+| Web Portal | React-based project/segment/governance workflows |
+| Data | PostgreSQL + PostGIS schema through migrations `001`–`004` |
+| Observability | OpenTelemetry traces/metrics/logs + SigNoz dashboards |
+| Auth | Internal JWT + OIDC JWT validation (Keycloak-compatible) |
+| Local Infra | Docker Compose stack (Postgres, Redis, MinIO, Redpanda, Keycloak, SigNoz, Caddy) |
+| Kubernetes | Helm chart scaffold at `helm/digiabd` |
+| Image Build | Packer template (`packer.pkr.hcl`) for API + web images |
+
+### 39.2 Requirements Traceability and Test Assets
+
+Canonical living artifacts:
+
+- FR traceability: `docs/FR_TRACEABILITY.md`
+- Test traceability matrix: `docs/TEST_MATRIX.md`
+- Code execution flow: `docs/CODE_FLOW.md`
+- OpenAPI contract: `docs/openapi.yaml`
+
+Current summary from traceability matrix:
+
+- P0: 36 total (16 implemented, 14 partial, 6 deferred)
+- P1: 16 total (2 implemented, 8 partial, 6 deferred)
+- P2: 2 total (0 implemented, 0 partial, 2 deferred)
+
+### 39.3 Key Known Gaps vs FRD Targets
+
+The following FRD capabilities remain partial/deferred in current code and must be treated as open work items:
+
+- FR-006 HDD crossing capture API
+- FR-010 OTDR file upload endpoint
+- FR-023 planned-vs-actual GIS overlay
+- FR-032 record versioning
+- FR-033 ZIP/PDF audit package export
+- FR-041 shapefile/KML export
+- FR-042 production-grade CAD generation (currently placeholder artifact)
+- FR-061 configurable mandatory checklists by project type
+- FR-074 retention/legal hold policy enforcement
+- FR-090 email/SMS channel (in-app only currently)
+
+### 39.4 Runtime Deployment References
+
+- Local stack: `docker-compose.yml`
+- Reverse proxy: `Caddyfile` + `docs/CADDY.md`
+- Helm deployment: `docs/HELM.md`
+- Packer image build: `docs/PACKER.md`
+- Operations and observability: `docs/OBSERVABILITY.md`
+
+### 39.5 Document Governance
+
+- `spec.md` remains the normative functional and non-functional intent.
+- `docs/FR_TRACEABILITY.md` is the source of truth for "implemented vs partial vs deferred".
+- Any future FR status change must update:
+  1. `docs/FR_TRACEABILITY.md`
+  2. `docs/TEST_MATRIX.md`
+  3. `spec.md` Revision History table
+
+---
+
 ## 21. Glossary
 
 | Term | Definition |
@@ -1932,3 +2000,4 @@ flowchart TB
 | 1.1 | 2026-07-07 | Digital ABD Program Team | Enhanced with functional/non-functional requirements, data model, architecture diagrams, workflows, security, risks, and acceptance criteria |
 | 1.2 | 2026-07-07 | Digital ABD Program Team | Replaced Figure 1 and Figure 2 PNG references with Mermaid diagrams |
 | 2.0 | 2026-07-07 | Digital ABD Program Team | Enterprise-grade enhancement: multi-tenancy, SLO/SLA, HA/DR, observability, event-driven architecture, API governance, data governance, zero-trust security, identity federation, deployment topology, capacity planning, testing strategy, change management, incident management, regulatory alignment |
+| 2.1 | 2026-07-08 | Digital ABD Program Team | Added implementation status addendum for v0.4, linked traceability/test artifacts, and documented current open FR gaps |

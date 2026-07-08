@@ -1,14 +1,88 @@
+# -----------------------------
+# Dependencies
+# -----------------------------
 node_modules/
+
+# -----------------------------
+# Build outputs
+# -----------------------------
 dist/
 build/
-.env
-.env.local
-*.log
-.DS_Store
+out/
+.next/
+.vite/
+*.tsbuildinfo
+
+# -----------------------------
+# Test / coverage artifacts
+# -----------------------------
 coverage/
-.turbo/
+.nyc_output/
+junit.xml
+test-results/
+playwright-report/
+
+# -----------------------------
+# Runtime / temp / logs
+# -----------------------------
+*.log
+logs/
+tmp/
+temp/
+uploads/
+*.pid
+*.seed
+
+# -----------------------------
+# Environment / secrets
+# -----------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.kubeconfig
+
+# -----------------------------
+# OS / editor
+# -----------------------------
+.DS_Store
+Thumbs.db
 .idea/
 .vscode/
 *.swp
-uploads/
-tmp/
+*.swo
+*~
+
+# -----------------------------
+# Monorepo / tool caches
+# -----------------------------
+.turbo/
+.cache/
+.eslintcache
+
+# -----------------------------
+# Expo / React Native
+# -----------------------------
+.expo/
+.expo-shared/
+*.expo.*
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# -----------------------------
+# Docker / local volumes
+# -----------------------------
+*.tar
+docker-data/
+
+# -----------------------------
+# Packer / Helm local overrides
+# -----------------------------
+*.pkrvars.hcl
+helm/**/values.local.yaml
+helm/**/values.override.yaml
