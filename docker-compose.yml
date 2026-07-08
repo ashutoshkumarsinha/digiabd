@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: digiabd-postgres
+    environment:
+      POSTGRES_USER: digiabd
+      POSTGRES_PASSWORD: digiabd
+      POSTGRES_DB: digiabd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U digiabd -d digiabd"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: digiabd-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: digiabd-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: digiabd
+      MINIO_ROOT_PASSWORD: digiabd-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 digiabd digiabd-secret &&
+      mc mb --ignore-existing local/digiabd-files &&
+      exit 0;
+      "
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: digiabd-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://digiabd:digiabd@postgres:5432/digiabd
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: digiabd
+      S3_SECRET_KEY: digiabd-secret
+      S3_BUCKET: digiabd-files
+      S3_USE_SSL: "false"
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/api/src:/app/src:ro
+
+volumes:
+  postgres_data:
+  minio_data:

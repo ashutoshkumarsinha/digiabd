@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: Digital ABD API
+  version: 0.1.0
+  description: As-Built Documentation platform for OFC networks
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service healthy
+
+  /api/v1/auth/login:
+    post:
+      summary: Development login (email only)
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  example: engineer@demo.telecom
+      responses:
+        '200':
+          description: JWT access token
+
+  /api/v1/projects:
+    get:
+      summary: List projects
+      tags: [Projects]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Project list
+    post:
+      summary: Create project
+      tags: [Projects]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                client_name: { type: string }
+                vendor_name: { type: string }
+                project_type: { type: string, enum: [urban, rural, hdd_heavy, mixed] }
+      responses:
+        '201':
+          description: Project created
+
+  /api/v1/projects/{projectId}/routes:
+    get:
+      summary: List routes for project
+      tags: [Routes]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Route list
+    post:
+      summary: Create route
+      tags: [Routes]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                total_length_km: { type: number }
+      responses:
+        '201':
+          description: Route created
+
+  /api/v1/routes/{routeId}/segments:
+    get:
+      summary: List segments
+      tags: [Segments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Segment list
+    post:
+      summary: Create segment
+      tags: [Segments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chainage_start, chainage_end]
+              properties:
+                chainage_start: { type: number }
+                chainage_end: { type: number }
+                surface_type: { type: string }
+      responses:
+        '201':
+          description: Segment created
+
+  /api/v1/segments/{segmentId}/trench:
+    put:
+      summary: Upsert trench record
+      tags: [Segments]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: segmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [depth_m]
+              properties:
+                depth_m: { type: number }
+                width_m: { type: number }
+                bedding_type: { type: string }
+                reinstatement_status: { type: string }
+      responses:
+        '200':
+          description: Trench saved
+
+  /api/v1/segments/{segmentId}/photos:
+    post:
+      summary: Upload geo-tagged photo
+      tags: [Photos]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: segmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+                phase: { type: string, enum: [before, during, after] }
+                latitude: { type: number }
+                longitude: { type: number }
+      responses:
+        '201':
+          description: Photo uploaded
+
+  /api/v1/deviations:
+    post:
+      summary: Create deviation
+      tags: [Deviations]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [segment_id, category, description]
+              properties:
+                segment_id: { type: string, format: uuid }
+                category: { type: string }
+                description: { type: string }
+                justification: { type: string }
+                severity: { type: string }
+      responses:
+        '201':
+          description: Deviation created
+
+  /api/v1/deviations/{deviationId}/approve:
+    post:
+      summary: Approve or reject deviation
+      tags: [Deviations]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: deviationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approved, rejected, returned] }
+                comments: { type: string }
+      responses:
+        '200':
+          description: Decision recorded
+
+  /api/v1/noc/lookup:
+    get:
+      summary: NOC fault localization lookup
+      tags: [NOC]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: segment_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: chainage
+          in: query
+          schema: { type: number }
+      responses:
+        '200':
+          description: Asset context for fault ticket
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

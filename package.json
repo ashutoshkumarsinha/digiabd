@@ -1,0 +1,25 @@
+{
+  "name": "digiabd",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Digital As-Built Documentation platform for OFC networks",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @digiabd/api",
+    "dev:web": "npm run dev -w @digiabd/web",
+    "build": "npm run build -w @digiabd/api && npm run build -w @digiabd/web",
+    "test": "npm run test -w @digiabd/api",
+    "lint": "npm run lint -w @digiabd/api",
+    "db:up": "docker compose up -d postgres redis minio minio-init",
+    "db:down": "docker compose down",
+    "stack:up": "docker compose up -d",
+    "stack:down": "docker compose down",
+    "migrate": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/001_initial_schema.sql"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
