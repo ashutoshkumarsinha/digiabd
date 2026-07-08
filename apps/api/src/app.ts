@@ -13,6 +13,7 @@ import { registerAuthRoutes, registerOrgRoutes } from './routes/auth.js';
 import { registerFieldCaptureRoutes } from './routes/field-capture.js';
 import { registerSyncRoutes, registerWebhookAdminRoutes, registerIntegrationRoutes } from './routes/integrations.js';
 import { registerProjectRoutes } from './routes/projects.js';
+import { registerGovernanceRoutes } from './routes/governance.js';
 import { registerResilienceRoutes } from './routes/resilience.js';
 import { registerSegmentRoutes } from './routes/segments.js';
 import { registerDeviationRoutes, registerNocRoutes, registerPhotoRoutes } from './routes/workflows.js';
@@ -42,7 +43,7 @@ export async function buildApp(config: AppConfig) {
       info: {
         title: 'Digital ABD API',
         description: 'As-Built Documentation platform for OFC networks',
-        version: '0.3.0',
+        version: '0.4.0',
       },
       servers: [{ url: `http://localhost:${config.PORT}` }],
       components: {
@@ -72,8 +73,8 @@ export async function buildApp(config: AppConfig) {
     return {
       status: 'ok',
       service: 'digiabd-api',
-      version: '0.3.0',
-      phase: 3,
+      version: '0.4.0',
+      phase: 4,
       kafka: isEventBusEnabled(),
       timestamp: new Date().toISOString(),
     };
@@ -91,6 +92,7 @@ export async function buildApp(config: AppConfig) {
   await registerWebhookAdminRoutes(app, pool);
   await registerIntegrationRoutes(app, pool);
   await registerResilienceRoutes(app, pool, config);
+  await registerGovernanceRoutes(app, pool);
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);

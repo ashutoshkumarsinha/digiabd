@@ -123,3 +123,41 @@ li {
   padding-top: 1rem;
   border-top: 1px solid #eceff1;
 }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.kpi {
+  text-align: center;
+  padding: 1rem;
+  background: #f5f9fc;
+  border-radius: 8px;
+}
+
+.kpi-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1565c0;
+}
+
+.kpi-label {
+  font-size: 0.85rem;
+  color: #78909c;
+}
+
+.compliance {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eceff1;
+}
+
+.check-pass { color: #2e7d32; }
+.check-fail { color: #c62828; }
+.check-warning { color: #e65100; }
+
+.ok-text { color: #2e7d32; }
+.warn-text { color: #e65100; }

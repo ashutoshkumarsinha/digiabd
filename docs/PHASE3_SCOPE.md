@@ -1,6 +1,6 @@
 # Digital ABD — Phase 3 Scope
 
-**Timeline:** Months 7–9 · **Status:** In progress
+**Timeline:** Months 7–9 · **Status:** Done
 
 ## Delivered in Phase 3
 

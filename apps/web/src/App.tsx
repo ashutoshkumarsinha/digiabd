@@ -11,12 +11,32 @@ interface SegmentDetail extends Segment {
   photos: unknown[];
   deviations: { id: string; category: string; status: string }[];
 }
+interface Dashboard {
+  projects: number;
+  segments: { total: number; avg_completeness: string; signed_off: number };
+  open_deviations: number;
+  faults: { total_faults: number; avg_mttr_minutes: string | null };
+  open_escalations: number;
+}
+interface ProjectSla {
+  abd_completeness_rate: number;
+  avg_completeness: string;
+  total_segments: number;
+  signed_off_segments: number;
+  open_deviations: number;
+  avg_mttr_minutes: string | null;
+  sla_status: string;
+}
+interface ComplianceResult {
+  compliance_status: string;
+  checks: Array<{ checkpoint: string; status: string; detail: string }>;
+}
 
-type View = 'login' | 'projects' | 'routes' | 'segments' | 'detail';
+type View = 'login' | 'projects' | 'routes' | 'segments' | 'detail' | 'governance';
 
 export function App() {
   const [view, setView] = useState<View>('login');
-  const [email, setEmail] = useState('engineer@demo.telecom');
+  const [email, setEmail] = useState('admin@demo.telecom');
   const [token, setToken] = useState<string | null>(localStorage.getItem('abd_token'));
   const [health, setHealth] = useState('checking...');
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +45,10 @@ export function App() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [detail, setDetail] = useState<SegmentDetail | null>(null);
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [projectSla, setProjectSla] = useState<ProjectSla | null>(null);
+  const [compliance, setCompliance] = useState<ComplianceResult | null>(null);
+  const [escalations, setEscalations] = useState<unknown[]>([]);
 
   const [projectId, setProjectId] = useState('');
   const [routeId, setRouteId] = useState('');
@@ -32,7 +56,6 @@ export function App() {
 
   const [depth, setDepth] = useState('1.65');
   const [ductType, setDuctType] = useState('HDPE');
-  const [notifications, setNotifications] = useState<unknown[]>([]);
 
   useEffect(() => {
     fetch('/health').then((r) => r.json()).then((d) => setHealth(d.status)).catch(() => setHealth('unreachable'));
@@ -49,7 +72,6 @@ export function App() {
       setToken(data.access_token);
       setView('projects');
       await loadProjects();
-      await loadNotifications();
     } catch {
       setError('Login failed');
     }
@@ -75,13 +97,30 @@ export function App() {
   async function loadDetail(id: string) {
     setSegmentId(id);
     setDetail(await api<SegmentDetail>(`/api/v1/segments/${id}/detail`));
+    setCompliance(null);
     setView('detail');
   }
 
-  async function loadNotifications() {
-    try {
-      setNotifications(await api<unknown[]>('/api/v1/notifications'));
-    } catch { /* optional */ }
+  async function loadGovernance() {
+    setDashboard(await api<Dashboard>('/api/v1/governance/dashboard'));
+    setEscalations(await api<unknown[]>('/api/v1/governance/escalations?status=open'));
+    if (projectId) {
+      setProjectSla(await api<ProjectSla>(`/api/v1/governance/projects/${projectId}/sla`));
+    }
+    setView('governance');
+  }
+
+  async function runComplianceCheck() {
+    if (!segmentId) return;
+    setCompliance(await api<ComplianceResult>(`/api/v1/governance/segments/${segmentId}/compliance`));
+  }
+
+  async function evaluateEscalations() {
+    await api('/api/v1/governance/escalations/evaluate', {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId || undefined }),
+    });
+    await loadGovernance();
   }
 
   async function saveTrench() {
@@ -114,7 +153,7 @@ export function App() {
     <div className="app">
       <header>
         <h1>Digital ABD</h1>
-        <p className="subtitle">Phase 2 — Field Capture Portal</p>
+        <p className="subtitle">Phase 4 — Governance Portal</p>
         <span className={`badge ${health === 'ok' ? 'ok' : 'warn'}`}>API: {health}</span>
       </header>
 
@@ -123,6 +162,7 @@ export function App() {
           <button onClick={loadProjects}>Projects</button>
           {projectId && <button onClick={() => loadRoutes(projectId)}>Routes</button>}
           {routeId && <button onClick={() => loadSegments(routeId)}>Segments</button>}
+          <button onClick={loadGovernance}>Governance</button>
         </nav>
       )}
 
@@ -142,9 +182,6 @@ export function App() {
           <ul>{projects.map((p) => (
             <li key={p.id}><button className="link" onClick={() => loadRoutes(p.id)}>{p.name}</button><span>{p.status}</span></li>
           ))}</ul>
-          {notifications.length > 0 && (
-            <div className="notifications"><h3>Notifications</h3><p>{notifications.length} recent event(s)</p></div>
-          )}
         </section>
       )}
 
@@ -192,8 +229,60 @@ export function App() {
           </div>
 
           <p>Photos: {detail.photos.length} · Cables: {detail.cables.length} · Deviations: {detail.deviations.length}</p>
-          <button onClick={submitSegment}>Submit for Review</button>
+          <div className="row">
+            <button onClick={submitSegment}>Submit for Review</button>
+            <button onClick={runComplianceCheck}>Run Compliance Check</button>
+          </div>
+
+          {compliance && (
+            <div className="compliance">
+              <h3>Compliance: {compliance.compliance_status}</h3>
+              <ul>{compliance.checks.map((c) => (
+                <li key={c.checkpoint} className={`check-${c.status}`}>
+                  <strong>{c.checkpoint}</strong> — {c.status}: {c.detail}
+                </li>
+              ))}</ul>
+            </div>
+          )}
         </section>
+      )}
+
+      {view === 'governance' && dashboard && (
+        <>
+          <section className="card kpi-grid">
+            <div className="kpi"><span className="kpi-value">{dashboard.projects}</span><span className="kpi-label">Projects</span></div>
+            <div className="kpi"><span className="kpi-value">{dashboard.segments.total}</span><span className="kpi-label">Segments</span></div>
+            <div className="kpi"><span className="kpi-value">{dashboard.segments.avg_completeness}%</span><span className="kpi-label">Avg Completeness</span></div>
+            <div className="kpi"><span className="kpi-value">{dashboard.open_deviations}</span><span className="kpi-label">Open Deviations</span></div>
+            <div className="kpi"><span className="kpi-value">{dashboard.faults.avg_mttr_minutes ?? '—'}</span><span className="kpi-label">Avg MTTR (min)</span></div>
+            <div className="kpi"><span className="kpi-value">{dashboard.open_escalations}</span><span className="kpi-label">Open Escalations</span></div>
+          </section>
+
+          {projectSla && (
+            <section className="card">
+              <h2>Project SLA</h2>
+              <p>Status: <strong className={projectSla.sla_status === 'compliant' ? 'ok-text' : 'warn-text'}>{projectSla.sla_status}</strong></p>
+              <p>Completeness rate: {projectSla.abd_completeness_rate}% (target 95%)</p>
+              <p>Signed off: {projectSla.signed_off_segments} / {projectSla.total_segments} segments</p>
+              {projectSla.avg_mttr_minutes && <p>Avg MTTR: {projectSla.avg_mttr_minutes} minutes</p>}
+            </section>
+          )}
+
+          <section className="card">
+            <div className="row">
+              <h2>Escalations ({escalations.length} open)</h2>
+              <button onClick={evaluateEscalations}>Evaluate Rules</button>
+            </div>
+            {escalations.length === 0 ? (
+              <p className="muted">No open escalations</p>
+            ) : (
+              <ul>{escalations.map((e: unknown) => {
+                const ev = e as { id: string; message: string; severity: string };
+                return <li key={ev.id}><strong>{ev.severity}</strong> — {ev.message}</li>;
+              })}</ul>
+            )}
+          </section>
+        </>
       )}
     </div>
   );

@@ -17,6 +17,7 @@
     "db:up": "docker compose up -d postgres redis minio minio-init redpanda",
     "db:migrate:phase2": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/002_phase2.sql",
     "db:migrate:phase3": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/003_phase3_resilience.sql",
+    "db:migrate:phase4": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/004_phase4_governance.sql",
     "db:down": "docker compose down",
     "stack:up": "docker compose up -d",
     "stack:down": "docker compose down",

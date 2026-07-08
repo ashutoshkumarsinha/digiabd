@@ -91,10 +91,10 @@ digiabd/
 |---|---|---|
 | Phase 1 — Foundation | Months 1–3 | Done |
 | Phase 2 — Scale | Months 4–6 | Done |
-| Phase 3 — Resilience | Months 7–9 | In progress |
-| Phase 4 — Governance | Months 10–12 | Planned |
+| Phase 3 — Resilience | Months 7–9 | Done |
+| Phase 4 — Governance | Months 10–12 | In progress |
 
-See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_SCOPE.md), and [docs/PHASE3_SCOPE.md](docs/PHASE3_SCOPE.md).
+See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_SCOPE.md), [docs/PHASE3_SCOPE.md](docs/PHASE3_SCOPE.md), and [docs/PHASE4_SCOPE.md](docs/PHASE4_SCOPE.md).
 
 ## Documentation
 
@@ -102,5 +102,6 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [MVP Scope](docs/MVP_SCOPE.md)
 - [Phase 2 Scope](docs/PHASE2_SCOPE.md)
 - [Phase 3 Scope](docs/PHASE3_SCOPE.md)
+- [Phase 4 Scope](docs/PHASE4_SCOPE.md)
 - [OpenAPI Spec](docs/openapi.yaml)
 - Live API docs at `/docs` when server is running

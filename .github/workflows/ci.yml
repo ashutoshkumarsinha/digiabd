@@ -40,6 +40,7 @@ jobs:
           PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/001_initial_schema.sql
           PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/002_phase2.sql
           PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/003_phase3_resilience.sql
+          PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/004_phase4_governance.sql
         env:
           PGPASSWORD: digiabd
 
