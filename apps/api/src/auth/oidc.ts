@@ -88,6 +88,14 @@ export async function verifyOidcAccessToken(params: {
   const issuer = params.config.OIDC_ISSUER;
   if (!issuer) throw new Error('OIDC_ISSUER not configured');
 
+  // Defense-in-depth:
+  // OIDC access tokens in this service are expected to be compact JWS JWTs
+  // (`header.payload.signature` => 3 dot-separated parts).
+  // Rejecting non-3-part tokens prevents any accidental JWE processing path.
+  if (params.token.split('.').length !== 3) {
+    throw new Error('Unsupported token format: expected compact JWS');
+  }
+
   const jwks = await getJwks(issuer);
   // Signature + issuer + audience validation happens here.
   const { payload } = await jwtVerify<OidcClaims>(params.token, jwks, {

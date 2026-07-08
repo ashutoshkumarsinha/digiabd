@@ -224,6 +224,9 @@ helm rollback digiabd <REVISION> -n digiabd
 - Restrict egress and apply network policies.
 - Integrate secret manager (Vault/KMS) instead of plain env values.
 - Enable vulnerability scanning and image signing.
+- Pin auth libraries to patched versions and avoid floating `latest` in production manifests.
+- OIDC verifier in API accepts only compact JWS JWT format (rejects non-3-part tokens by design).
+- Block direct `/metrics` and `/debug/*` edge access unless explicitly required and protected.
 
 ## 11. Troubleshooting
 

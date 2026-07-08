@@ -123,6 +123,8 @@ caddy:
   config: |
     :8088 {
       encode gzip zstd
+      @blocked path /metrics /metrics/* /debug/* /debug/pprof/* /actuator/prometheus
+      respond @blocked 404
       @api path /api/* /health /docs* /docs/*
       handle @api {
         reverse_proxy {{ .Release.Name }}-digiabd-api:3000
