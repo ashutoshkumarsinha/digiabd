@@ -121,4 +121,5 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [Test Matrix](docs/TEST_MATRIX.md)
 - [Observability Guide](docs/OBSERVABILITY.md)
 - [Caddy Reverse Proxy](docs/CADDY.md)
+- [Packer image builds](docs/PACKER.md)
 - Live API docs at `/docs` when server is running
