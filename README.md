@@ -103,5 +103,6 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [Phase 2 Scope](docs/PHASE2_SCOPE.md)
 - [Phase 3 Scope](docs/PHASE3_SCOPE.md)
 - [Phase 4 Scope](docs/PHASE4_SCOPE.md)
-- [OpenAPI Spec](docs/openapi.yaml)
+- [OpenAPI Spec](docs/openapi.yaml) (v0.4.0 — synced with all Phase 1–4 endpoints)
+- [FR Traceability Matrix](docs/FR_TRACEABILITY.md)
 - Live API docs at `/docs` when server is running

@@ -1,182 +1,349 @@
 openapi: 3.0.3
 info:
   title: Digital ABD API
-  version: 0.1.0
-  description: As-Built Documentation platform for OFC networks
+  version: 0.4.0
+  description: |
+    As-Built Documentation platform for Optical Fiber Cable (OFC) networks.
+
+    **Authentication:** Bearer JWT (except `/health`, `/api/v1/auth/login`, `/api/v1/auth/oidc/*`).
+
+    **Idempotency:** Include `Idempotency-Key` header on POST/PUT write operations.
+
+    **Errors:** RFC 7807 Problem Details (`application/problem+json`).
+
+    Live interactive docs available at `/docs` when the API server is running.
+  contact:
+    name: Digital ABD Program Team
+  license:
+    name: Proprietary
+
 servers:
   - url: http://localhost:3000
     description: Local development
+  - url: https://api.digiabd.example.com
+    description: Production (placeholder)
+
+tags:
+  - name: System
+  - name: Auth
+  - name: Organizations
+  - name: Projects
+  - name: Routes
+  - name: Segments
+  - name: Field Capture
+  - name: Photos
+  - name: Deviations
+  - name: NOC
+  - name: Sync
+  - name: Webhooks
+  - name: Integrations
+  - name: Assets
+  - name: Notifications
+  - name: GIS
+  - name: CAD
+  - name: ETL
+  - name: Governance
 
 paths:
   /health:
     get:
+      tags: [System]
       summary: Health check
+      operationId: getHealth
       responses:
         '200':
           description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
 
   /api/v1/auth/login:
     post:
-      summary: Development login (email only)
       tags: [Auth]
+      summary: Development / hybrid-mode login
+      operationId: login
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  example: engineer@demo.telecom
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: JWT access token
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/oidc/config:
+    get:
+      tags: [Auth]
+      summary: OIDC configuration for SSO clients
+      operationId: getOidcConfig
+      responses:
+        '200':
+          description: OIDC config or disabled flag
+
+  /api/v1/auth/oidc/callback:
+    post:
+      tags: [Auth]
+      summary: OIDC authorization code callback (Phase 2.1)
+      operationId: oidcCallback
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+      responses:
+        '501':
+          description: Not yet implemented — use /auth/login in hybrid mode
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      operationId: getCurrentUser
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile from JWT claims
+
+  /api/v1/organizations:
+    get:
+      tags: [Organizations]
+      summary: Get current user's organization
+      operationId: getOrganization
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Organization details
 
   /api/v1/projects:
     get:
-      summary: List projects
       tags: [Projects]
+      summary: List projects
+      operationId: listProjects
       security: [{ bearerAuth: [] }]
       responses:
         '200':
           description: Project list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
     post:
-      summary: Create project
       tags: [Projects]
+      summary: Create project
+      operationId: createProject
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-                client_name: { type: string }
-                vendor_name: { type: string }
-                project_type: { type: string, enum: [urban, rural, hdd_heavy, mixed] }
+              $ref: '#/components/schemas/CreateProjectRequest'
       responses:
         '201':
           description: Project created
 
   /api/v1/projects/{projectId}/routes:
     get:
-      summary: List routes for project
       tags: [Routes]
+      summary: List routes for project
+      operationId: listRoutes
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/projectId'
       responses:
         '200':
           description: Route list
     post:
-      summary: Create route
       tags: [Routes]
+      summary: Create route
+      operationId: createRoute
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/projectId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-                total_length_km: { type: number }
+              $ref: '#/components/schemas/CreateRouteRequest'
       responses:
         '201':
           description: Route created
 
   /api/v1/routes/{routeId}/segments:
     get:
-      summary: List segments
       tags: [Segments]
+      summary: List segments for route
+      operationId: listSegments
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: routeId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/routeId'
       responses:
         '200':
           description: Segment list
     post:
-      summary: Create segment
       tags: [Segments]
+      summary: Create segment
+      operationId: createSegment
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: routeId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/routeId'
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [chainage_start, chainage_end]
-              properties:
-                chainage_start: { type: number }
-                chainage_end: { type: number }
-                surface_type: { type: string }
+              $ref: '#/components/schemas/CreateSegmentRequest'
       responses:
         '201':
           description: Segment created
 
-  /api/v1/segments/{segmentId}/trench:
-    put:
-      summary: Upsert trench record
+  /api/v1/segments/{segmentId}:
+    get:
       tags: [Segments]
+      summary: Get segment by ID
+      operationId: getSegment
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: segmentId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/segmentId'
+      responses:
+        '200':
+          description: Segment
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/segments/{segmentId}/detail:
+    get:
+      tags: [Field Capture]
+      summary: Get segment with all field records
+      operationId: getSegmentDetail
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      responses:
+        '200':
+          description: Full segment detail
+
+  /api/v1/segments/{segmentId}/trench:
+    put:
+      tags: [Field Capture]
+      summary: Upsert trench record
+      operationId: upsertTrench
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [depth_m]
-              properties:
-                depth_m: { type: number }
-                width_m: { type: number }
-                bedding_type: { type: string }
-                reinstatement_status: { type: string }
+              $ref: '#/components/schemas/TrenchRecord'
       responses:
         '200':
           description: Trench saved
 
-  /api/v1/segments/{segmentId}/photos:
-    post:
-      summary: Upload geo-tagged photo
-      tags: [Photos]
+  /api/v1/segments/{segmentId}/duct:
+    put:
+      tags: [Field Capture]
+      summary: Upsert duct record
+      operationId: upsertDuct
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: segmentId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/segmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuctRecord'
+      responses:
+        '200':
+          description: Duct saved
+
+  /api/v1/segments/{segmentId}/cables:
+    post:
+      tags: [Field Capture]
+      summary: Create cable lay record
+      operationId: createCable
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CableRecord'
+      responses:
+        '201':
+          description: Cable record created
+
+  /api/v1/segments/{segmentId}/survey-points:
+    post:
+      tags: [Field Capture]
+      summary: Add GPS survey point
+      operationId: addSurveyPoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SurveyPoint'
+      responses:
+        '201':
+          description: Survey point created
+
+  /api/v1/segments/{segmentId}/closures:
+    post:
+      tags: [Field Capture]
+      summary: Create joint closure
+      operationId: createClosure
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JointClosure'
+      responses:
+        '201':
+          description: Closure created
+
+  /api/v1/segments/{segmentId}/photos:
+    post:
+      tags: [Photos]
+      summary: Upload geo-tagged photo
+      operationId: uploadPhoto
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
+              required: [file]
               properties:
                 file: { type: string, format: binary }
                 phase: { type: string, enum: [before, during, after] }
@@ -185,33 +352,60 @@ paths:
       responses:
         '201':
           description: Photo uploaded
+        '413':
+          description: File exceeds 25 MB limit
+
+  /api/v1/segments/{segmentId}/submit:
+    post:
+      tags: [Field Capture]
+      summary: Submit segment for review (completeness gate)
+      operationId: submitSegment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      responses:
+        '200':
+          description: Segment submitted
+        '422':
+          description: Incomplete ABD package
+
+  /api/v1/segments/{segmentId}/sign-off:
+    post:
+      tags: [Field Capture]
+      summary: OIC sign-off on segment
+      operationId: signOffSegment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      responses:
+        '200':
+          description: Segment signed off
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          description: Blocked by open deviations
 
   /api/v1/deviations:
     post:
-      summary: Create deviation
       tags: [Deviations]
+      summary: Create deviation record
+      operationId: createDeviation
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [segment_id, category, description]
-              properties:
-                segment_id: { type: string, format: uuid }
-                category: { type: string }
-                description: { type: string }
-                justification: { type: string }
-                severity: { type: string }
+              $ref: '#/components/schemas/CreateDeviationRequest'
       responses:
         '201':
           description: Deviation created
 
   /api/v1/deviations/{deviationId}/approve:
     post:
-      summary: Approve or reject deviation
       tags: [Deviations]
+      summary: Approve, reject, or return deviation
+      operationId: approveDeviation
       security: [{ bearerAuth: [] }]
       parameters:
         - name: deviationId
@@ -223,19 +417,328 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [decision]
-              properties:
-                decision: { type: string, enum: [approved, rejected, returned] }
-                comments: { type: string }
+              $ref: '#/components/schemas/ApprovalDecision'
       responses:
         '200':
           description: Decision recorded
 
   /api/v1/noc/lookup:
     get:
-      summary: NOC fault localization lookup
       tags: [NOC]
+      summary: Fault localization asset lookup
+      operationId: nocLookup
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: segment_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: chainage
+          in: query
+          schema: { type: number }
+        - name: latitude
+          in: query
+          schema: { type: number }
+        - name: longitude
+          in: query
+          schema: { type: number }
+      responses:
+        '200':
+          description: Asset context for fault ticket
+
+  /api/v1/sync/batch:
+    post:
+      tags: [Sync]
+      summary: Offline sync batch upload
+      operationId: syncBatch
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncBatchRequest'
+      responses:
+        '200':
+          description: Batch processed
+
+  /api/v1/webhooks:
+    get:
+      tags: [Webhooks]
+      summary: List webhook subscriptions
+      operationId: listWebhooks
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Webhook list
+    post:
+      tags: [Webhooks]
+      summary: Create webhook subscription
+      operationId: createWebhook
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created
+
+  /api/v1/integrations/scm/materials:
+    get:
+      tags: [Integrations]
+      summary: SCM materials stub
+      operationId: getScmMaterials
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Material list from SCM integration
+
+  /api/v1/integrations/scm/receipts:
+    post:
+      tags: [Integrations]
+      summary: Record SCM material receipt
+      operationId: createScmReceipt
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serial_number, project_id]
+              properties:
+                serial_number: { type: string }
+                project_id: { type: string, format: uuid }
+                received_at: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Receipt recorded
+
+  /api/v1/assets:
+    get:
+      tags: [Assets]
+      summary: List asset master records
+      operationId: listAssets
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Asset list
+    post:
+      tags: [Assets]
+      summary: Register asset
+      operationId: createAsset
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssetRequest'
+      responses:
+        '201':
+          description: Asset created
+
+  /api/v1/notifications:
+    get:
+      tags: [Notifications]
+      summary: List in-app notifications
+      operationId: listNotifications
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Notification list
+
+  /api/v1/gis/wms/capabilities:
+    get:
+      tags: [GIS]
+      summary: WMS service capabilities descriptor
+      operationId: getWmsCapabilities
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: WMS capabilities
+
+  /api/v1/gis/routes/{routeId}/geojson:
+    get:
+      tags: [GIS]
+      summary: Export route as GeoJSON FeatureCollection
+      operationId: exportGeoJson
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/routeId'
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection
+
+  /api/v1/cad/routes/{routeId}/generate:
+    post:
+      tags: [CAD]
+      summary: Generate as-built CAD artifact
+      operationId: generateCad
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/routeId'
+      responses:
+        '201':
+          description: CAD artifact generated
+
+  /api/v1/cad/routes/{routeId}/artifacts:
+    get:
+      tags: [CAD]
+      summary: List CAD artifacts for route
+      operationId: listCadArtifacts
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/routeId'
+      responses:
+        '200':
+          description: CAD artifact list
+
+  /api/v1/etl/routes/{routeId}/jobs:
+    post:
+      tags: [ETL]
+      summary: Queue ETL job for route
+      operationId: queueEtlJob
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/routeId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                job_type:
+                  type: string
+                  enum: [gis_layer_refresh, cad_generation, data_quality_scan]
+      responses:
+        '201':
+          description: Job queued
+
+  /api/v1/etl/jobs:
+    get:
+      tags: [ETL]
+      summary: List ETL jobs
+      operationId: listEtlJobs
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: route_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: ETL job list
+
+  /api/v1/governance/dashboard:
+    get:
+      tags: [Governance]
+      summary: Organization governance dashboard KPIs
+      operationId: getGovernanceDashboard
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Dashboard KPIs
+
+  /api/v1/governance/projects/{projectId}/sla:
+    get:
+      tags: [Governance]
+      summary: Project SLA metrics (completeness, MTTR, MTBF)
+      operationId: getProjectSla
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: SLA metrics
+
+  /api/v1/governance/segments/{segmentId}/compliance:
+    get:
+      tags: [Governance]
+      summary: TEC-aligned compliance report for segment
+      operationId: getSegmentCompliance
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      responses:
+        '200':
+          description: Compliance report with pass/fail checkpoints
+
+  /api/v1/governance/escalations/rules:
+    get:
+      tags: [Governance]
+      summary: List escalation rules
+      operationId: listEscalationRules
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Rule list
+    post:
+      tags: [Governance]
+      summary: Create escalation rule
+      operationId: createEscalationRule
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationRule'
+      responses:
+        '201':
+          description: Rule created
+
+  /api/v1/governance/escalations/evaluate:
+    post:
+      tags: [Governance]
+      summary: Evaluate escalation rules against live data
+      operationId: evaluateEscalations
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Evaluation result with triggered events
+
+  /api/v1/governance/escalations:
+    get:
+      tags: [Governance]
+      summary: List escalation events
+      operationId: listEscalations
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, acknowledged, resolved] }
+      responses:
+        '200':
+          description: Escalation event list
+
+  /api/v1/governance/executive/summary:
+    get:
+      tags: [Governance]
+      summary: Executive portfolio summary
+      operationId: getExecutiveSummary
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Portfolio KPI rollup
+
+  /api/v1/governance/noc/rca-hints:
+    get:
+      tags: [Governance]
+      summary: RCA hints correlating faults with deviations/crossings
+      operationId: getRcaHints
       security: [{ bearerAuth: [] }]
       parameters:
         - name: segment_id
@@ -246,7 +749,26 @@ paths:
           schema: { type: number }
       responses:
         '200':
-          description: Asset context for fault ticket
+          description: RCA hint list
+
+  /api/v1/governance/audit/export:
+    post:
+      tags: [Governance]
+      summary: Export audit package for project or route
+      operationId: exportAuditPackage
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_id: { type: string, format: uuid }
+                route_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Audit package generated
 
 components:
   securitySchemes:
@@ -254,3 +776,221 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: JWT from /api/v1/auth/login or OIDC flow
+
+  parameters:
+    projectId:
+      name: projectId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    routeId:
+      name: routeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    segmentId:
+      name: segmentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Insufficient role permissions
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        service: { type: string }
+        version: { type: string, example: '0.4.0' }
+        phase: { type: integer, example: 4 }
+        kafka: { type: boolean }
+        timestamp: { type: string, format: date-time }
+
+    LoginRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, example: engineer@demo.telecom }
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: Bearer }
+        expires_in: { type: integer, example: 3600 }
+
+    Project:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string }
+        vendor_name: { type: string, nullable: true }
+        client_name: { type: string, nullable: true }
+        project_type: { type: string, enum: [urban, rural, hdd_heavy, mixed] }
+
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        client_name: { type: string }
+        vendor_name: { type: string }
+        project_type: { type: string, enum: [urban, rural, hdd_heavy, mixed] }
+
+    CreateRouteRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        total_length_km: { type: number }
+
+    CreateSegmentRequest:
+      type: object
+      required: [chainage_start, chainage_end]
+      properties:
+        chainage_start: { type: number }
+        chainage_end: { type: number }
+        surface_type: { type: string, enum: [road, shoulder, rural, urban, highway, railway] }
+
+    TrenchRecord:
+      type: object
+      required: [depth_m]
+      properties:
+        depth_m: { type: number, minimum: 0, example: 1.65 }
+        width_m: { type: number }
+        bedding_type: { type: string }
+        reinstatement_status: { type: string, enum: [pending, in_progress, completed] }
+
+    DuctRecord:
+      type: object
+      required: [duct_type]
+      properties:
+        duct_type: { type: string, enum: [HDPE, DWC, RCC] }
+        diameter_mm: { type: number }
+        duct_count: { type: integer, default: 1 }
+        protection_method: { type: string }
+
+    CableRecord:
+      type: object
+      required: [core_count, laid_length_m]
+      properties:
+        core_count: { type: integer }
+        laid_length_m: { type: number }
+        manufacturer: { type: string }
+        sheath_type: { type: string }
+        drum_number: { type: string }
+
+    SurveyPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        altitude_m: { type: number }
+        accuracy_m: { type: number }
+
+    JointClosure:
+      type: object
+      required: [latitude, longitude, closure_type, splice_count]
+      properties:
+        latitude: { type: number }
+        longitude: { type: number }
+        closure_type: { type: string }
+        splice_count: { type: integer }
+
+    CreateDeviationRequest:
+      type: object
+      required: [segment_id, category, description]
+      properties:
+        segment_id: { type: string, format: uuid }
+        category: { type: string }
+        description: { type: string }
+        justification: { type: string }
+        severity: { type: string, enum: [low, medium, high, critical] }
+
+    ApprovalDecision:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, rejected, returned] }
+        comments: { type: string }
+
+    SyncBatchRequest:
+      type: object
+      required: [items]
+      properties:
+        device_id: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [client_id, operation, payload]
+            properties:
+              client_id: { type: string }
+              operation:
+                type: string
+                enum: [create_segment, upsert_trench, upsert_duct, upsert_cable, create_deviation]
+              payload: { type: object }
+
+    CreateWebhookRequest:
+      type: object
+      required: [name, url, events]
+      properties:
+        name: { type: string }
+        url: { type: string, format: uri }
+        events:
+          type: array
+          items: { type: string }
+        secret: { type: string }
+
+    CreateAssetRequest:
+      type: object
+      required: [asset_type, serial_number]
+      properties:
+        asset_type: { type: string, enum: [cable_drum, duct, closure, other] }
+        serial_number: { type: string }
+        manufacturer: { type: string }
+
+    EscalationRule:
+      type: object
+      required: [name, trigger_type, threshold]
+      properties:
+        name: { type: string }
+        trigger_type:
+          type: string
+          enum: [completeness_below, open_deviations, sla_breach, approval_overdue]
+        threshold: { type: number }
+        severity: { type: string, enum: [low, medium, high, critical] }
+        notify_roles:
+          type: array
+          items: { type: string }
