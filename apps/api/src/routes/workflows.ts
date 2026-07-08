@@ -8,6 +8,7 @@ import * as abd from '../services/abd.js';
 import { emitAbdEvent } from '../services/webhooks.js';
 import { checksum, createStorageClient, uploadFile } from '../services/storage.js';
 
+// Workflow routes cover deviations, evidence uploads, and NOC lookups.
 export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
   app.post('/api/v1/deviations', { preHandler: [app.authenticate] }, async (request, reply) => {
     const user = getAuthUser(request);
@@ -101,6 +102,7 @@ export async function registerPhotoRoutes(
       }
 
       const buffer = await data.toBuffer();
+      // Enforce NFR file size guard even before storage upload.
       if (buffer.length > 25 * 1024 * 1024) {
         return reply.status(413).send({
           type: 'https://digiabd.io/errors/payload-too-large',
@@ -138,6 +140,7 @@ export async function registerPhotoRoutes(
 }
 
 export async function registerNocRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
+  // NOC lookup supports fault triage by segment, chainage, or GPS coordinates.
   app.get(
     '/api/v1/noc/lookup',
     { preHandler: [app.authenticate, requireRoles('noc_operator', 'program_manager', 'inspector_oic')] },

@@ -5,6 +5,7 @@ export interface AuthToken {
 }
 
 export async function login(email: string): Promise<string> {
+  // Mobile login uses the same backend endpoint as web for consistency.
   const res = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -16,6 +17,7 @@ export async function login(email: string): Promise<string> {
 }
 
 export async function apiGet<T>(token: string, path: string): Promise<T> {
+  // Minimal GET helper so screens don't repeat fetch boilerplate.
   const res = await fetch(`${API_URL}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -24,6 +26,7 @@ export async function apiGet<T>(token: string, path: string): Promise<T> {
 }
 
 export async function apiPost<T>(token: string, path: string, body: unknown): Promise<T> {
+  // Minimal POST helper used by field capture actions.
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -34,6 +37,7 @@ export async function apiPost<T>(token: string, path: string, body: unknown): Pr
 }
 
 export async function syncBatch(token: string, items: unknown[], deviceId: string) {
+  // Offline queue flush endpoint. Idempotency-Key protects retries.
   const res = await fetch(`${API_URL}/api/v1/sync/batch`, {
     method: 'POST',
     headers: {

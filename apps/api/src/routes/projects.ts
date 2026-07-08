@@ -4,6 +4,8 @@ import { withOrgContext } from '../db/pool.js';
 import { getAuthUser } from '../middleware/auth.js';
 import * as abd from '../services/abd.js';
 
+// Project routes are the "entry point" for navigating org data:
+// projects -> routes -> segments.
 export async function registerProjectRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
   app.get('/api/v1/projects', { preHandler: [app.authenticate] }, async (request) => {
     const user = getAuthUser(request);
@@ -32,6 +34,7 @@ export async function registerProjectRoutes(app: FastifyInstance, pool: pg.Pool)
       abd.createProject(client, user.orgId, body),
     );
 
+    // Every create action writes an audit record for compliance traceability.
     await withOrgContext(pool, user.orgId, (client) =>
       abd.writeAuditLog(client, {
         org_id: user.orgId,

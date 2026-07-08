@@ -4,6 +4,7 @@ import { withOrgContext } from '../db/pool.js';
 import { getAuthUser } from '../middleware/auth.js';
 import * as abd from '../services/abd.js';
 
+// Segment routes provide core construction-capture primitives.
 export async function registerSegmentRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
   app.get<{ Params: { routeId: string } }>(
     '/api/v1/routes/:routeId/segments',
@@ -90,6 +91,7 @@ export async function registerSegmentRoutes(app: FastifyInstance, pool: pg.Pool)
         });
       }
 
+      // Upsert means we create the trench row once, then update same row later.
       await withOrgContext(pool, user.orgId, (client) =>
         abd.upsertTrenchRecord(client, user.orgId, request.params.segmentId, body),
       );

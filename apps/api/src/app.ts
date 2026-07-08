@@ -20,7 +20,10 @@ import { registerDeviationRoutes, registerNocRoutes, registerPhotoRoutes } from 
 import { closeEventBus, initEventBus, isEventBusEnabled } from './services/events.js';
 import { recordHttpRequestMetric, recordOtelLog } from './observability/telemetry.js';
 
+// buildApp wires all platform dependencies (DB, auth, docs, routes, hooks)
+// and returns a fully initialized Fastify instance.
 export async function buildApp(config: AppConfig) {
+  // Fastify app instance with request IDs for traceability.
   const app = Fastify({
     logger: { level: config.NODE_ENV === 'production' ? 'info' : 'debug' },
     requestIdHeader: 'x-request-id',
@@ -30,6 +33,7 @@ export async function buildApp(config: AppConfig) {
   app.decorate('config', config);
   const pool = createPool(config);
 
+  // Event bus is optional in dev; API continues even if Kafka is unavailable.
   await initEventBus(config).catch((err) => {
     app.log.warn({ err }, 'Kafka event bus unavailable — continuing without events');
   });
@@ -59,11 +63,13 @@ export async function buildApp(config: AppConfig) {
   await app.register(swaggerUi, { routePrefix: '/docs' });
   app.decorate('authenticate', authenticate);
 
+  // onRequest starts request timing and returns request ID to clients.
   app.addHook('onRequest', async (request, reply) => {
     request.observabilityStartNs = process.hrtime.bigint();
     reply.header('X-Request-ID', request.id);
   });
 
+  // onResponse publishes metrics/log records for every request.
   app.addHook('onResponse', async (request, reply) => {
     const startedAt = request.observabilityStartNs;
     if (!startedAt) return;
@@ -90,6 +96,7 @@ export async function buildApp(config: AppConfig) {
     });
   });
 
+  // Idempotency check applies to API writes so retries are safe.
   app.addHook('preHandler', async (request, reply) => {
     if (request.url.startsWith('/api/v1/') && request.method !== 'GET') {
       const proceed = await checkIdempotency(pool, config, request, reply);
@@ -97,6 +104,7 @@ export async function buildApp(config: AppConfig) {
     }
   });
 
+  // Lightweight health endpoint used by smoke tests and orchestration.
   app.get('/health', async () => {
     await pool.query('SELECT 1');
     return {
@@ -109,6 +117,7 @@ export async function buildApp(config: AppConfig) {
     };
   });
 
+  // Register bounded route modules. Each module owns one domain.
   await registerAuthRoutes(app, pool, config);
   await registerOrgRoutes(app, pool);
   await registerProjectRoutes(app, pool);
@@ -123,6 +132,7 @@ export async function buildApp(config: AppConfig) {
   await registerResilienceRoutes(app, pool, config);
   await registerGovernanceRoutes(app, pool);
 
+  // Uniform RFC7807 error response contract.
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
     recordOtelLog({
@@ -143,6 +153,7 @@ export async function buildApp(config: AppConfig) {
     });
   });
 
+  // Ensure all long-lived resources are closed when app shuts down.
   app.addHook('onClose', async () => {
     await closeEventBus();
     await closeRedis();

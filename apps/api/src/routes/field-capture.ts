@@ -5,6 +5,7 @@ import { getAuthUser, requireRoles } from '../middleware/auth.js';
 import * as field from '../services/field-capture.js';
 import { emitAbdEvent } from '../services/webhooks.js';
 
+// Field capture routes complete segment-level documentation artifacts.
 export async function registerFieldCaptureRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
   app.get<{ Params: { segmentId: string } }>(
     '/api/v1/segments/:segmentId/detail',
@@ -94,6 +95,7 @@ export async function registerFieldCaptureRoutes(app: FastifyInstance, pool: pg.
         field.submitSegment(client, user.orgId, request.params.segmentId),
       );
       if (!result.ok) {
+        // Submission gate prevents incomplete ABD packets from progressing.
         return reply.status(422).send({
           type: 'https://digiabd.io/errors/incomplete',
           title: 'Incomplete ABD Package',
@@ -122,6 +124,7 @@ export async function registerFieldCaptureRoutes(app: FastifyInstance, pool: pg.
         field.signOffSegment(client, user.orgId, request.params.segmentId),
       );
       if (!result.ok) {
+        // Final sign-off is blocked if unresolved deviations still exist.
         return reply.status(422).send({
           type: 'https://digiabd.io/errors/blocked',
           title: 'Sign-off Blocked',

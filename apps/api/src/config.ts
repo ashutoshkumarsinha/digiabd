@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+// Single source of truth for runtime configuration validation.
+// If a required variable is missing/invalid, boot fails early and loudly.
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(3000),
@@ -49,10 +51,12 @@ export function loadConfig(): AppConfig {
 }
 
 export function getKafkaBrokers(config: AppConfig): string[] {
+  // Keep local default so app still boots without explicit broker config.
   return (config.KAFKA_BROKERS ?? 'localhost:19092').split(',').map((b) => b.trim());
 }
 
 export function isOidcEnabled(config: AppConfig): boolean {
+  // OIDC is considered "active" only when mode + required IdP params are present.
   return (
     (config.AUTH_MODE === 'oidc' || config.AUTH_MODE === 'hybrid') &&
     Boolean(config.OIDC_ISSUER && config.OIDC_CLIENT_ID)

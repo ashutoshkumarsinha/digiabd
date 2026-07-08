@@ -14,6 +14,11 @@ import * as Location from 'expo-location';
 import { apiGet, apiPost, login, syncBatch } from './src/api';
 import { clearQueue, enqueue, getDeviceId, getQueue, queueSize } from './src/offline';
 
+// Beginner note:
+// This mobile app focuses on "field-first" operations:
+// - capture data quickly
+// - queue operations offline
+// - sync to backend when network is available
 interface Project {
   id: string;
   name: string;

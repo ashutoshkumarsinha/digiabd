@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { api } from './lib/api';
 
+// Beginner note:
+// This component is a single-page "operator console" that demonstrates the core
+// backend workflow in one place: login -> projects -> routes -> segments ->
+// capture updates -> governance metrics.
 interface Project { id: string; name: string; status: string; vendor_name: string | null; }
 interface Route { id: string; name: string; total_length_km: string | null; status: string; }
 interface Segment { id: string; chainage_start: string; chainage_end: string; completeness: string; status: string; surface_type: string | null; }

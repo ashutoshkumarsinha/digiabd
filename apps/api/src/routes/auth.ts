@@ -5,6 +5,7 @@ import { isOidcEnabled } from '../config.js';
 import { query } from '../db/pool.js';
 import type { Organization } from '../types/index.js';
 
+// Converts a DB user row to a signed internal JWT used by API routes.
 async function issueTokenForUser(
   reply: import('fastify').FastifyReply,
   user: { id: string; org_id: string; email: string; full_name: string; role: string },
@@ -20,6 +21,7 @@ async function issueTokenForUser(
 }
 
 export async function registerAuthRoutes(app: FastifyInstance, pool: pg.Pool, config: AppConfig): Promise<void> {
+  // Dev/hybrid login is intentionally simple for local environments and smoke tests.
   if (config.AUTH_MODE === 'dev' || config.AUTH_MODE === 'hybrid') {
     app.post('/api/v1/auth/login', async (request, reply) => {
       const body = request.body as { email?: string };
@@ -58,6 +60,7 @@ export async function registerAuthRoutes(app: FastifyInstance, pool: pg.Pool, co
   }
 
   app.get('/api/v1/auth/oidc/config', async () => {
+    // Frontend reads this to decide whether to show OIDC sign-in UX.
     if (!isOidcEnabled(config)) {
       return { enabled: false, mode: config.AUTH_MODE };
     }
@@ -71,7 +74,7 @@ export async function registerAuthRoutes(app: FastifyInstance, pool: pg.Pool, co
     };
   });
 
-  // Phase 2.1: wire openid-client authorization code exchange when IdP credentials are available
+  // Placeholder endpoint for future server-side authorization-code exchange flow.
   app.post('/api/v1/auth/oidc/callback', async (_request, reply) => {
     if (!isOidcEnabled(config)) {
       return reply.status(404).send({ enabled: false });
@@ -90,6 +93,7 @@ export async function registerAuthRoutes(app: FastifyInstance, pool: pg.Pool, co
 }
 
 export async function registerOrgRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
+  // Returns the authenticated user's org details for tenant-aware UI.
   app.get('/api/v1/organizations', { preHandler: [app.authenticate] }, async (request, reply) => {
     const user = request.user as { orgId: string };
     const orgs = await query<Organization>(pool, `SELECT * FROM organizations WHERE id = $1`, [user.orgId]);

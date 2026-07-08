@@ -2,6 +2,8 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import type { AuthUser, UserRole } from '../types/index.js';
 import type { AppConfig } from '../config.js';
 
+// Helper module for validating external OIDC access tokens and mapping claims
+// into the app's internal AuthUser model.
 type OidcClaims = JWTPayload & {
   email?: string;
   name?: string;
@@ -19,6 +21,7 @@ let cachedJwks:
   | undefined;
 
 async function discoverJwksUri(issuer: string): Promise<string> {
+  // OIDC discovery endpoint tells us where public signing keys (JWKS) live.
   const res = await fetch(`${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`);
   if (!res.ok) {
     throw new Error(`OIDC discovery failed: ${res.status}`);
@@ -29,6 +32,7 @@ async function discoverJwksUri(issuer: string): Promise<string> {
 }
 
 async function getJwks(issuer: string) {
+  // Cache JWKS resolver per issuer to avoid repeating discovery on every request.
   if (cachedJwks?.issuer === issuer) return cachedJwks.jwks;
   const jwksUri = await discoverJwksUri(issuer);
   const jwks = createRemoteJWKSet(new URL(jwksUri));
@@ -50,6 +54,7 @@ const ROLE_ALLOWLIST: UserRole[] = [
 ];
 
 function pickRoleFromClaims(claims: OidcClaims, config: AppConfig): UserRole {
+  // Role lookup checks both realm roles and client roles.
   const realmRoles = claims.realm_access?.roles ?? [];
   const clientRoles = config.OIDC_CLIENT_ID
     ? claims.resource_access?.[config.OIDC_CLIENT_ID]?.roles ?? []
@@ -61,6 +66,7 @@ function pickRoleFromClaims(claims: OidcClaims, config: AppConfig): UserRole {
 }
 
 export function mapOidcClaimsToAuthUser(claims: OidcClaims, config: AppConfig): AuthUser {
+  // Defaults keep dev/test flow usable even with minimal claims.
   const email = claims.email ?? '';
   const name = claims.name ?? claims.preferred_username ?? email ?? 'Unknown';
   const orgId = claims.orgId ?? 'a0000000-0000-4000-8000-000000000001';
@@ -83,6 +89,7 @@ export async function verifyOidcAccessToken(params: {
   if (!issuer) throw new Error('OIDC_ISSUER not configured');
 
   const jwks = await getJwks(issuer);
+  // Signature + issuer + audience validation happens here.
   const { payload } = await jwtVerify<OidcClaims>(params.token, jwks, {
     issuer,
     audience: params.config.OIDC_CLIENT_ID,

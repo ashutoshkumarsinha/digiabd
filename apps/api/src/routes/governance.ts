@@ -4,6 +4,7 @@ import { withOrgContext } from '../db/pool.js';
 import { getAuthUser, requireRoles } from '../middleware/auth.js';
 import * as governance from '../services/governance.js';
 
+// Governance routes aggregate cross-domain telemetry and compliance insights.
 export async function registerGovernanceRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
   app.get(
     '/api/v1/governance/dashboard',
@@ -22,6 +23,7 @@ export async function registerGovernanceRoutes(app: FastifyInstance, pool: pg.Po
       const sla = await withOrgContext(pool, user.orgId, (client) =>
         governance.getProjectSla(client, user.orgId, request.params.projectId),
       );
+      // Snapshotting preserves historical trend points for SLA charts.
       await withOrgContext(pool, user.orgId, (client) =>
         governance.recordSlaSnapshot(client, user.orgId, request.params.projectId, [
           { name: 'abd_completeness_rate', value: sla.abd_completeness_rate, target: 95, unit: '%' },

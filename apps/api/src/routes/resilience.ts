@@ -5,12 +5,14 @@ import { withOrgContext } from '../db/pool.js';
 import { getAuthUser, requireRoles } from '../middleware/auth.js';
 import * as resilience from '../services/resilience.js';
 
+// Resilience routes expose GIS/CAD/ETL operations introduced in Phase 3.
 export async function registerResilienceRoutes(
   app: FastifyInstance,
   pool: pg.Pool,
   config: AppConfig,
 ): Promise<void> {
   app.get('/api/v1/gis/wms/capabilities', { preHandler: [app.authenticate] }, async () => {
+    // Stub response keeps integration contract stable while external GIS matures.
     return {
       service: 'WMS',
       version: '1.3.0',
@@ -27,6 +29,7 @@ export async function registerResilienceRoutes(
     async (request) => {
       const user = getAuthUser(request);
       return withOrgContext(pool, user.orgId, async (client) => {
+        // Export + snapshot registration helps track generated GIS layer versions.
         const geojson = await resilience.buildRouteGeoJson(client, user.orgId, request.params.routeId);
         const featureCount =
           typeof geojson === 'object' &&
