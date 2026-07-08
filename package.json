@@ -10,10 +10,12 @@
   "scripts": {
     "dev": "npm run dev -w @digiabd/api",
     "dev:web": "npm run dev -w @digiabd/web",
+    "dev:mobile": "npm run start -w @digiabd/mobile",
     "build": "npm run build -w @digiabd/api && npm run build -w @digiabd/web",
     "test": "npm run test -w @digiabd/api",
     "lint": "npm run lint -w @digiabd/api",
-    "db:up": "docker compose up -d postgres redis minio minio-init",
+    "db:up": "docker compose up -d postgres redis minio minio-init redpanda",
+    "db:migrate:phase2": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/002_phase2.sql",
     "db:down": "docker compose down",
     "stack:up": "docker compose up -d",
     "stack:down": "docker compose down",

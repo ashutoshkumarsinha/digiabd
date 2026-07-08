@@ -73,30 +73,33 @@ curl -s -X POST "http://localhost:3000/api/v1/routes/$ROUTE_ID/segments" \
 ```
 digiabd/
 ├── apps/
-│   └── api/              # Node.js + Fastify REST API
+│   ├── api/              # Node.js + Fastify REST API
+│   ├── web/              # React portal (Phase 2 field capture UI)
+│   └── mobile/           # Expo field app with offline sync
+├── packages/
+│   └── shared/           # Shared TypeScript types
 ├── database/
 │   └── migrations/       # PostgreSQL + PostGIS schema
 ├── docs/
-│   ├── MVP_SCOPE.md      # Phase 1 scope definition
-│   └── openapi.yaml      # API specification
-├── spec.md               # Enterprise FRD (v2.0)
-└── docker-compose.yml    # Local dev stack
+│   ├── MVP_SCOPE.md
+│   └── PHASE2_SCOPE.md
 ```
 
 ## Implementation Phases
 
 | Phase | Timeline | Status |
 |---|---|---|
-| Phase 1 — Foundation | Months 1–3 | 🔄 In progress |
-| Phase 2 — Scale | Months 4–6 | Planned |
+| Phase 1 — Foundation | Months 1–3 | Done |
+| Phase 2 — Scale | Months 4–6 | In progress |
 | Phase 3 — Resilience | Months 7–9 | Planned |
 | Phase 4 — Governance | Months 10–12 | Planned |
 
-See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md) for Phase 1 details.
+See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md) and [docs/PHASE2_SCOPE.md](docs/PHASE2_SCOPE.md).
 
 ## Documentation
 
 - [Functional Requirements (spec.md)](spec.md)
 - [MVP Scope](docs/MVP_SCOPE.md)
+- [Phase 2 Scope](docs/PHASE2_SCOPE.md)
 - [OpenAPI Spec](docs/openapi.yaml)
 - Live API docs at `/docs` when server is running

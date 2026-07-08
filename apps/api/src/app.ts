@@ -6,24 +6,33 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { AppConfig } from './config.js';
 import { createPool } from './db/pool.js';
+import { closeRedis } from './db/redis.js';
 import { authenticate } from './middleware/auth.js';
+import { checkIdempotency } from './middleware/idempotency.js';
 import { registerAuthRoutes, registerOrgRoutes } from './routes/auth.js';
+import { registerFieldCaptureRoutes } from './routes/field-capture.js';
+import { registerSyncRoutes, registerWebhookAdminRoutes, registerIntegrationRoutes } from './routes/integrations.js';
 import { registerProjectRoutes } from './routes/projects.js';
 import { registerSegmentRoutes } from './routes/segments.js';
 import { registerDeviationRoutes, registerNocRoutes, registerPhotoRoutes } from './routes/workflows.js';
+import { closeEventBus, initEventBus, isEventBusEnabled } from './services/events.js';
 
 export async function buildApp(config: AppConfig) {
   const app = Fastify({
-    logger: {
-      level: config.NODE_ENV === 'production' ? 'info' : 'debug',
-    },
+    logger: { level: config.NODE_ENV === 'production' ? 'info' : 'debug' },
     requestIdHeader: 'x-request-id',
     genReqId: () => crypto.randomUUID(),
   });
 
   const pool = createPool(config);
 
-  await app.register(cors, { origin: config.CORS_ORIGIN });
+  await initEventBus(config).catch((err) => {
+    app.log.warn({ err }, 'Kafka event bus unavailable — continuing without events');
+  });
+
+  await app.register(cors, {
+    origin: config.CORS_ORIGIN.split(',').map((o) => o.trim()),
+  });
   await app.register(jwt, { secret: config.JWT_SECRET });
   await app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -32,7 +41,7 @@ export async function buildApp(config: AppConfig) {
       info: {
         title: 'Digital ABD API',
         description: 'As-Built Documentation platform for OFC networks',
-        version: '0.1.0',
+        version: '0.2.0',
       },
       servers: [{ url: `http://localhost:${config.PORT}` }],
       components: {
@@ -44,11 +53,17 @@ export async function buildApp(config: AppConfig) {
   });
 
   await app.register(swaggerUi, { routePrefix: '/docs' });
-
   app.decorate('authenticate', authenticate);
 
   app.addHook('onRequest', async (request, reply) => {
     reply.header('X-Request-ID', request.id);
+  });
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (request.url.startsWith('/api/v1/') && request.method !== 'GET') {
+      const proceed = await checkIdempotency(pool, config, request, reply);
+      if (!proceed) return reply;
+    }
   });
 
   app.get('/health', async () => {
@@ -56,18 +71,24 @@ export async function buildApp(config: AppConfig) {
     return {
       status: 'ok',
       service: 'digiabd-api',
-      version: '0.1.0',
+      version: '0.2.0',
+      phase: 2,
+      kafka: isEventBusEnabled(),
       timestamp: new Date().toISOString(),
     };
   });
 
-  await registerAuthRoutes(app, pool);
+  await registerAuthRoutes(app, pool, config);
   await registerOrgRoutes(app, pool);
   await registerProjectRoutes(app, pool);
   await registerSegmentRoutes(app, pool);
+  await registerFieldCaptureRoutes(app, pool);
   await registerDeviationRoutes(app, pool);
   await registerPhotoRoutes(app, pool, config);
   await registerNocRoutes(app, pool);
+  await registerSyncRoutes(app, pool, config);
+  await registerWebhookAdminRoutes(app, pool);
+  await registerIntegrationRoutes(app, pool);
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
@@ -81,6 +102,8 @@ export async function buildApp(config: AppConfig) {
   });
 
   app.addHook('onClose', async () => {
+    await closeEventBus();
+    await closeRedis();
     await pool.end();
   });
 

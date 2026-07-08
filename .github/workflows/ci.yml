@@ -36,7 +36,9 @@ jobs:
         run: npm ci
 
       - name: Apply database migrations
-        run: PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/001_initial_schema.sql
+        run: |
+          PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/001_initial_schema.sql
+          PGPASSWORD=digiabd psql -h localhost -U digiabd -d digiabd -f database/migrations/002_phase2.sql
         env:
           PGPASSWORD: digiabd
 

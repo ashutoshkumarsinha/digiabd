@@ -5,6 +5,7 @@ import type { AppConfig } from '../config.js';
 import { withOrgContext } from '../db/pool.js';
 import { getAuthUser, requireRoles } from '../middleware/auth.js';
 import * as abd from '../services/abd.js';
+import { emitAbdEvent } from '../services/webhooks.js';
 import { checksum, createStorageClient, uploadFile } from '../services/storage.js';
 
 export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
@@ -31,6 +32,13 @@ export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Poo
       abd.createDeviation(client, user.orgId, user.sub, body),
     );
 
+    void emitAbdEvent(pool, user.orgId, 'abd.deviation.created', {
+      deviation_id: deviation.id,
+      segment_id: deviation.segment_id,
+      category: deviation.category,
+      severity: deviation.severity,
+    });
+
     return reply.status(201).send(deviation);
   });
 
@@ -56,6 +64,13 @@ export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Poo
       const deviation = await withOrgContext(pool, user.orgId, (client) =>
         abd.approveDeviation(client, user.orgId, user.sub, request.params.deviationId, body.decision, body.comments),
       );
+
+      if (body.decision === 'approved') {
+        void emitAbdEvent(pool, user.orgId, 'abd.deviation.approved', {
+          deviation_id: deviation.id,
+          segment_id: deviation.segment_id,
+        });
+      }
 
       return reply.send(deviation);
     },
