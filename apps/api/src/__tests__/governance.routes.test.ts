@@ -135,14 +135,27 @@ describe('Governance routes (Phase 4)', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('POST /api/v1/governance/audit/export returns audit artifact (FR-033 partial)', async () => {
+  it('POST /api/v1/governance/audit/export returns ZIP artifact metadata (FR-033)', async () => {
     const res = await ctx.app.inject({
       method: 'POST',
       url: '/api/v1/governance/audit/export',
       headers: { ...ctx.authHeader(ctx.tokens.admin), 'content-type': 'application/json' },
       payload: { project_id: PROJECT_ID },
     });
-    expect([200, 201]).toContain(res.statusCode);
+    expect(res.statusCode).toBe(201);
+    const body = JSON.parse(res.body) as {
+      export: { file_ref: string; record_count: number };
+      artifact: { content_type: string; file_ref: string; checksum_sha256: string };
+      package_manifest: { files: string[] };
+    };
+    expect(body.export.file_ref.endsWith('.zip')).toBe(true);
+    expect(body.export.record_count).toBeGreaterThanOrEqual(0);
+    expect(body.artifact.content_type).toBe('application/zip');
+    expect(body.artifact.file_ref).toBe(body.export.file_ref);
+    expect(body.artifact.checksum_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(body.package_manifest.files).toContain('segments.geojson');
+    expect(body.package_manifest.files).toContain('audit-log.json');
+    expect(body.package_manifest.files).toContain('report.pdf');
   });
 
   it('RBAC: engineer cannot access governance dashboard (FR-060)', async () => {

@@ -72,40 +72,54 @@ export async function registerWebhookAdminRoutes(app: FastifyInstance, pool: pg.
 }
 
 export async function registerIntegrationRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
-  app.get('/api/v1/integrations/scm/materials', { preHandler: [app.authenticate] }, async (request) => {
-    const user = getAuthUser(request);
-    const { rows } = await pool.query(
-      `SELECT * FROM integration_endpoints WHERE org_id = $1 AND system_type = 'scm' AND is_active = TRUE LIMIT 1`,
-      [user.orgId],
-    );
+  app.get(
+    '/api/v1/integrations/scm/materials',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
+    async (request) => {
+      const user = getAuthUser(request);
+      const { rows } = await pool.query(
+        `SELECT * FROM integration_endpoints WHERE org_id = $1 AND system_type = 'scm' AND is_active = TRUE LIMIT 1`,
+        [user.orgId],
+      );
 
-    // SCM stub — returns demo material data; replace with live SCM API call
-    return {
-      integration: rows[0] ?? null,
-      materials: [
-        { serial_number: 'DRUM-2026-001', type: 'cable_drum', core_count: 48, manufacturer: 'Sterlite' },
-        { serial_number: 'DRUM-2026-002', type: 'cable_drum', core_count: 96, manufacturer: 'Corning' },
-        { serial_number: 'DUCT-HDPE-40', type: 'duct', diameter_mm: 40, manufacturer: 'Supreme' },
-      ],
-    };
-  });
+      // SCM stub — returns demo material data; replace with live SCM API call
+      return {
+        integration: rows[0] ?? null,
+        materials: [
+          { serial_number: 'DRUM-2026-001', type: 'cable_drum', core_count: 48, manufacturer: 'Sterlite' },
+          { serial_number: 'DRUM-2026-002', type: 'cable_drum', core_count: 96, manufacturer: 'Corning' },
+          { serial_number: 'DUCT-HDPE-40', type: 'duct', diameter_mm: 40, manufacturer: 'Supreme' },
+        ],
+      };
+    },
+  );
 
-  app.post('/api/v1/integrations/scm/receipts', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const body = request.body as { serial_number: string; project_id: string; received_at?: string };
-    if (!body?.serial_number || !body?.project_id) {
-      return reply.status(400).send({
-        type: 'https://digiabd.io/errors/validation',
-        title: 'Validation Error',
-        status: 400,
-        detail: 'serial_number and project_id are required',
+  app.post(
+    '/api/v1/integrations/scm/receipts',
+    {
+      preHandler: [app.authenticate],
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const body = request.body as { serial_number: string; project_id: string; received_at?: string };
+      if (!body?.serial_number || !body?.project_id) {
+        return reply.status(400).send({
+          type: 'https://digiabd.io/errors/validation',
+          title: 'Validation Error',
+          status: 400,
+          detail: 'serial_number and project_id are required',
+        });
+      }
+      // SCM receipt stub
+      return reply.status(201).send({
+        receipt_id: crypto.randomUUID(),
+        status: 'recorded',
+        ...body,
+        recorded_at: new Date().toISOString(),
       });
-    }
-    // SCM receipt stub
-    return reply.status(201).send({
-      receipt_id: crypto.randomUUID(),
-      status: 'recorded',
-      ...body,
-      recorded_at: new Date().toISOString(),
-    });
-  });
+    },
+  );
 }

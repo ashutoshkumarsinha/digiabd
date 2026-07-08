@@ -63,7 +63,7 @@ P0 partial/deferred items are the primary go-live gaps.
 | FR-030 | Centralized cloud repository | PostgreSQL + PostGIS + MinIO (`docker-compose`) | Implemented | infra / `npm run db:up` |
 | FR-031 | Advanced search (bbox, asset IDs, etc.) | `GET /api/v1/noc/lookup`, `GET /api/v1/segments/:id`, segment detail | Partial | `scripts/smoke-test.sh` (NOC) |
 | FR-032 | Record versioning | — | Deferred | — |
-| FR-033 | Audit package export (ZIP/PDF + GIS) | `POST /api/v1/governance/audit/export` (JSON) | Partial | `scripts/smoke-test-phase4.sh` |
+| FR-033 | Audit package export (ZIP/PDF + GIS) | `POST /api/v1/governance/audit/export` (ZIP metadata + GeoJSON + audit log bundle) | Implemented | `scripts/smoke-test-phase4.sh`; `apps/api/src/__tests__/governance.routes.test.ts` |
 | FR-034 | Bulk legacy import | — | Deferred | — |
 
 ---
@@ -143,7 +143,7 @@ P0 partial/deferred items are the primary go-live gaps.
 | FR-021 | Fixed approval chain | Make workflow steps configurable per project |
 | FR-023 | No planned-route overlay | Import design alignment + map layer API |
 | FR-032 | No versioning | Add `record_versions` table + read APIs |
-| FR-033 | JSON-only audit export | Generate ZIP (report PDF + GeoJSON layer) |
+| FR-033 | PDF rendering still placeholder | Add rich PDF renderer/template pipeline for branded audit documents |
 | FR-041 | Shapefile/KML missing | Add export jobs via ETL pipeline |
 | FR-042 | CAD placeholder only | Integrate DXF/DWG generation worker |
 | FR-061 | No checklist config | Admin API for mandatory fields per `project_type` |

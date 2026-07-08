@@ -38,6 +38,8 @@ const envSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
   OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().default(10000),
+  RATE_LIMIT_MAX: z.coerce.number().default(200),
+  RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().default(60),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

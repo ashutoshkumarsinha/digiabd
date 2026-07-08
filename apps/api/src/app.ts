@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
+import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import type { AppConfig } from './config.js';
@@ -43,6 +44,17 @@ export async function buildApp(config: AppConfig) {
   });
   await app.register(jwt, { secret: config.JWT_SECRET });
   await app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
+  await app.register(rateLimit, {
+    global: true,
+    max: config.RATE_LIMIT_MAX,
+    timeWindow: `${config.RATE_LIMIT_WINDOW_SECONDS} seconds`,
+    errorResponseBuilder: (_request, context) => ({
+      type: 'https://digiabd.io/errors/rate-limit',
+      title: 'Too Many Requests',
+      status: 429,
+      detail: `Rate limit exceeded: max ${context.max} requests per ${context.after}`,
+    }),
+  });
 
   await app.register(swagger, {
     openapi: {
@@ -130,7 +142,7 @@ export async function buildApp(config: AppConfig) {
   await registerWebhookAdminRoutes(app, pool);
   await registerIntegrationRoutes(app, pool);
   await registerResilienceRoutes(app, pool, config);
-  await registerGovernanceRoutes(app, pool);
+  await registerGovernanceRoutes(app, pool, config);
 
   // Uniform RFC7807 error response contract.
   app.setErrorHandler((error, request, reply) => {

@@ -1,11 +1,16 @@
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
+import type { AppConfig } from '../config.js';
 import { withOrgContext } from '../db/pool.js';
 import { getAuthUser, requireRoles } from '../middleware/auth.js';
 import * as governance from '../services/governance.js';
 
 // Governance routes aggregate cross-domain telemetry and compliance insights.
-export async function registerGovernanceRoutes(app: FastifyInstance, pool: pg.Pool): Promise<void> {
+export async function registerGovernanceRoutes(
+  app: FastifyInstance,
+  pool: pg.Pool,
+  config: AppConfig,
+): Promise<void> {
   app.get(
     '/api/v1/governance/dashboard',
     { preHandler: [app.authenticate, requireRoles('program_manager', 'enterprise_admin', 'auditor', 'inspector_oic')] },
@@ -200,7 +205,7 @@ export async function registerGovernanceRoutes(app: FastifyInstance, pool: pg.Po
         });
       }
       const result = await withOrgContext(pool, user.orgId, (client) =>
-        governance.exportAuditPackage(client, user.orgId, user.sub, body),
+        governance.exportAuditPackage(client, config, user.orgId, user.sub, body),
       );
       return reply.status(201).send(result);
     },

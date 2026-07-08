@@ -792,7 +792,7 @@ paths:
   /api/v1/governance/audit/export:
     post:
       tags: [Governance]
-      summary: Export audit package for project or route
+      summary: Export ZIP audit package (PDF + GIS + logs)
       operationId: exportAuditPackage
       security: [{ bearerAuth: [] }]
       requestBody:
@@ -806,7 +806,7 @@ paths:
                 route_id: { type: string, format: uuid }
       responses:
         '201':
-          description: Audit package generated
+          description: Audit package generated with artifact metadata (`file_ref`, checksum, manifest)
 
 components:
   securitySchemes:

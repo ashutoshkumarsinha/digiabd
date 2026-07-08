@@ -1,4 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import type { DbClient } from '../db/pool.js';
+import type { AppConfig } from '../config.js';
+import { checksum, createStorageClient, uploadFile } from './storage.js';
+import JSZip from 'jszip';
 
 export interface ComplianceCheck {
   checkpoint: string;
@@ -423,6 +427,42 @@ export async function updateEscalationEventStatus(
   return { ok: true as const, event: rows[0] };
 }
 
+function createSimplePdfReport(lines: string[]): Buffer {
+  const safeLines = lines.map((line) =>
+    line.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+  );
+  const textOps = ['BT', '/F1 12 Tf', '50 780 Td'];
+  for (let i = 0; i < safeLines.length; i += 1) {
+    if (i > 0) textOps.push('0 -16 Td');
+    textOps.push(`(${safeLines[i]}) Tj`);
+  }
+  textOps.push('ET');
+  const content = textOps.join('\n');
+
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
+    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+    `5 0 obj\n<< /Length ${Buffer.byteLength(content, 'utf8')} >>\nstream\n${content}\nendstream\nendobj\n`,
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  for (const obj of objects) {
+    offsets.push(Buffer.byteLength(pdf, 'utf8'));
+    pdf += obj;
+  }
+  const xrefOffset = Buffer.byteLength(pdf, 'utf8');
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+  for (let i = 1; i <= objects.length; i += 1) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, 'utf8');
+}
+
 export async function getExecutiveSummary(client: DbClient, orgId: string) {
   const dashboard = await getOrgDashboard(client, orgId);
 
@@ -510,6 +550,7 @@ export async function getRcaHints(
 
 export async function exportAuditPackage(
   client: DbClient,
+  config: AppConfig,
   orgId: string,
   userId: string,
   params: { project_id?: string; route_id?: string },
@@ -534,22 +575,95 @@ export async function exportAuditPackage(
     [orgId],
   );
 
+  const exportedAt = new Date().toISOString();
   const packageData = {
-    exported_at: new Date().toISOString(),
+    exported_at: exportedAt,
     org_id: orgId,
     segment_count: segments.rows.length,
     segments: segments.rows,
     audit_log_sample: auditLogs,
   };
 
+  const geoJson = {
+    type: 'FeatureCollection',
+    features: segments.rows.map((segment) => ({
+      type: 'Feature',
+      geometry: null,
+      properties: {
+        segment_id: segment.id,
+        route_id: segment.route_id,
+        chainage_start: segment.chainage_start,
+        chainage_end: segment.chainage_end,
+        status: segment.status,
+        completeness: segment.completeness,
+        route_name: segment.route_name,
+        project_name: segment.project_name,
+      },
+    })),
+  };
+
+  const reportLines = [
+    'Digital ABD Audit Package',
+    `Exported At: ${exportedAt}`,
+    `Org ID: ${orgId}`,
+    `Project ID: ${params.project_id ?? 'N/A'}`,
+    `Route ID: ${params.route_id ?? 'N/A'}`,
+    `Segment Count: ${segments.rows.length}`,
+    `Audit Log Entries Included: ${auditLogs.length}`,
+    '',
+    'This package includes:',
+    '- report.txt',
+    '- report.pdf',
+    '- segments.geojson',
+    '- audit-log.json',
+    '- manifest.json',
+  ];
+  const reportText = reportLines.join('\n');
+  const reportPdf = createSimplePdfReport(reportLines);
+
+  const manifest = {
+    version: 1,
+    exported_at: exportedAt,
+    org_id: orgId,
+    project_id: params.project_id ?? null,
+    route_id: params.route_id ?? null,
+    files: ['report.txt', 'report.pdf', 'segments.geojson', 'audit-log.json', 'manifest.json'],
+    record_count: segments.rows.length,
+  };
+
+  const zip = new JSZip();
+  zip.file('report.txt', reportText);
+  zip.file('report.pdf', reportPdf);
+  zip.file('segments.geojson', JSON.stringify(geoJson, null, 2));
+  zip.file('audit-log.json', JSON.stringify(auditLogs, null, 2));
+  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+  const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+  const hash = checksum(zipBuffer);
+
+  const exportId = randomUUID();
+  const key = `${orgId}/audit-exports/${exportId}.zip`;
+  const storage = createStorageClient(config);
+  if (storage) {
+    await uploadFile(storage, config.S3_BUCKET, key, zipBuffer, 'application/zip');
+  }
+
   const { rows } = await client.query(
-    `INSERT INTO audit_exports (org_id, project_id, route_id, export_type, record_count, generated_by)
-     VALUES ($1, $2, $3, 'audit_package', $4, $5)
+    `INSERT INTO audit_exports (id, org_id, project_id, route_id, export_type, file_ref, record_count, generated_by)
+     VALUES ($1, $2, $3, $4, 'audit_package_zip', $5, $6, $7)
      RETURNING *`,
-    [orgId, params.project_id ?? null, params.route_id ?? null, segments.rows.length, userId],
+    [exportId, orgId, params.project_id ?? null, params.route_id ?? null, key, segments.rows.length, userId],
   );
 
-  return { export: rows[0], package: packageData };
+  return {
+    export: rows[0],
+    package_manifest: manifest,
+    package: packageData,
+    artifact: {
+      file_ref: key,
+      content_type: 'application/zip',
+      checksum_sha256: hash,
+    },
+  };
 }
 
 export async function recordSlaSnapshot(

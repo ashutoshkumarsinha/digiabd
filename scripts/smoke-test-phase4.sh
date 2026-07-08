@@ -69,6 +69,6 @@ echo "==> Audit export"
 curl -sf -X POST "$API_URL/api/v1/governance/audit/export" \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d "{\"route_id\":\"$ROUTE_ID\"}" | "$JQ_BIN" '.export.record_count'
+  -d "{\"route_id\":\"$ROUTE_ID\"}" | "$JQ_BIN" '.export.record_count, .export.file_ref, .artifact.content_type'
 
 echo "==> Phase 4 smoke test passed"
