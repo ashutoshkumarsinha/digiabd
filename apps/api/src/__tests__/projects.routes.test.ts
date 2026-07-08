@@ -75,5 +75,22 @@ describe('Project & route routes', () => {
     const overlap = projectsOrg2.some((p) => ids1.has(p.id));
     expect(overlap).toBe(false);
   });
+
+  it('GET/PUT checklist config works for admins (FR-061)', async () => {
+    const getRes = await ctx.app.inject({
+      method: 'GET',
+      url: '/api/v1/checklists/urban',
+      headers: ctx.authHeader(ctx.tokens.admin),
+    });
+    expect(getRes.statusCode).toBe(200);
+
+    const putRes = await ctx.app.inject({
+      method: 'PUT',
+      url: '/api/v1/checklists/urban',
+      headers: { ...ctx.authHeader(ctx.tokens.admin), 'content-type': 'application/json' },
+      payload: { required_items: ['trench', 'duct', 'photos', 'cable'] },
+    });
+    expect(putRes.statusCode).toBe(200);
+  });
 });
 

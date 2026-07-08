@@ -46,11 +46,11 @@
 | FR-003 | TC-SYNC-001 | `POST /api/v1/sync/batch`; mobile offline queue | API-INT, SMOKE (`scripts/smoke-test-phase2.sh`), MOBILE-E2E |
 | FR-004 | TC-FC-003 | `PUT /api/v1/segments/:segmentId/trench` | API-INT, SMOKE |
 | FR-005 | TC-FC-004 | `PUT /api/v1/segments/:segmentId/duct` | API-INT, SMOKE |
-| FR-006 | TC-FC-005 | HDD crossings (deferred) | MANUAL (gap) |
+| FR-006 | TC-FC-005 | `PUT /api/v1/segments/:segmentId/hdd-crossing` | API-INT, SMOKE |
 | FR-007 | TC-PHOTO-001 | `POST /api/v1/segments/:segmentId/photos` | API-INT, WEB-E2E, MANUAL |
 | FR-008 | TC-FC-006 | `POST /api/v1/segments/:segmentId/cables` | API-INT, SMOKE |
 | FR-009 | TC-FC-007 | `POST /api/v1/segments/:segmentId/closures` | API-INT, SMOKE |
-| FR-010 | TC-OTDR-001 | OTDR upload (deferred) | MANUAL (gap) |
+| FR-010 | TC-OTDR-001 | `POST /api/v1/closures/:closureId/otdr` | API-INT, SMOKE |
 | FR-011 | TC-FC-008 | `POST /api/v1/segments/:segmentId/submit` | API-INT, SMOKE |
 | FR-012 | TC-FC-009 | QR/barcode (deferred) | MOBILE-E2E (future) |
 
@@ -61,7 +61,7 @@
 | FR-020 | TC-DEV-001 | `POST /api/v1/deviations` | API-INT |
 | FR-021 | TC-DEV-002 | `POST /api/v1/deviations/:deviationId/approve` | API-INT |
 | FR-022 | TC-DEV-003 | Approval audit trail + audit export | API-INT, SMOKE (`scripts/smoke-test-phase4.sh`) |
-| FR-023 | TC-GIS-002 | Planned vs actual overlay (deferred) | WEB-E2E (future) |
+| FR-023 | TC-GIS-002 | `GET /api/v1/gis/routes/:routeId/overlay` | API-INT, SMOKE |
 | FR-024 | TC-DEV-004 | `POST /api/v1/segments/:segmentId/sign-off` blocks open deviations | API-INT |
 | FR-025 | TC-DEV-005 | OTP / signature sign-off (deferred) | WEB-E2E (future) |
 
@@ -71,7 +71,7 @@
 |---|---|---|---|
 | FR-030 | TC-REPO-001 | Postgres + MinIO + artifact persistence | API-INT, MANUAL |
 | FR-031 | TC-SRCH-001 | `GET /api/v1/noc/lookup` and segment detail | API-INT, SMOKE |
-| FR-032 | TC-REPO-002 | Versioning (deferred) | MANUAL (gap) |
+| FR-032 | TC-REPO-002 | `GET /api/v1/versions/:entityType/:entityId` | API-INT, MANUAL |
 | FR-033 | TC-AUDIT-001 | `POST /api/v1/governance/audit/export` | API-INT, SMOKE |
 | FR-034 | TC-REPO-003 | Legacy import (deferred) | MANUAL (gap) |
 
@@ -80,7 +80,7 @@
 | FR | Test IDs | Endpoint(s) / Component | Automation |
 |---|---|---|---|
 | FR-040 | TC-GIS-001 | `GET /api/v1/gis/routes/:routeId/geojson` | API-INT, SMOKE (`scripts/smoke-test-phase3.sh`) |
-| FR-041 | TC-GIS-003 | GeoJSON + WMS capabilities | API-INT, SMOKE |
+| FR-041 | TC-GIS-003 | GeoJSON + KML + shapefile bundle + WMS capabilities | API-INT, SMOKE |
 | FR-042 | TC-CAD-001 | `POST /api/v1/cad/routes/:routeId/generate`, `GET /artifacts` | API-INT, SMOKE |
 | FR-043 | TC-GIS-004 | GeoJSON feature metadata tags | API-INT |
 | FR-044 | TC-GIS-005 | GPS reconciliation (deferred) | WEB-E2E (future) |
@@ -101,7 +101,7 @@
 | FR | Test IDs | Endpoint(s) / Component | Automation |
 |---|---|---|---|
 | FR-060 | TC-AUTHZ-001 | `authenticate`, `requireRoles`, endpoint RBAC | API-UNIT, API-INT |
-| FR-061 | TC-ADMIN-001 | checklists (deferred) | MANUAL (gap) |
+| FR-061 | TC-ADMIN-001 | `GET/PUT /api/v1/checklists/:projectType` + submit gate enforcement | API-INT, SMOKE |
 | FR-062 | TC-TEN-001 | RLS/multi-tenant isolation | API-INT, MANUAL |
 | FR-063 | TC-ADMIN-002 | sandbox env (deferred) | MANUAL (gap) |
 
@@ -138,8 +138,8 @@
 | Script | Coverage highlights |
 |---|---|
 | `scripts/smoke-test.sh` | login, projects, create segment, trench, noc lookup |
-| `scripts/smoke-test-phase2.sh` | field capture core + sync + integrations + notifications |
-| `scripts/smoke-test-phase3.sh` | ETL + GIS + CAD |
+| `scripts/smoke-test-phase2.sh` | field capture core + HDD + OTDR + sync + integrations + notifications |
+| `scripts/smoke-test-phase3.sh` | ETL + GIS exports + overlay + CAD |
 | `scripts/smoke-test-phase4.sh` | governance dashboard + SLA + compliance + escalations + executive summary + audit export |
 
 ---

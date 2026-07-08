@@ -52,6 +52,37 @@ describe('Field capture routes', () => {
     expect([200, 422]).toContain(res.statusCode);
   });
 
+  it('PUT /api/v1/segments/:segmentId/hdd-crossing upserts HDD record (FR-006)', async () => {
+    const segRes = await ctx.app.inject({
+      method: 'POST',
+      url: `/api/v1/routes/${ROUTE_ID}/segments`,
+      headers: { ...ctx.authHeader(ctx.tokens.engineer), 'content-type': 'application/json' },
+      payload: { chainage_start: 2600, chainage_end: 2800, surface_type: 'highway' },
+    });
+    const seg = JSON.parse(segRes.body) as { id: string };
+    const res = await ctx.app.inject({
+      method: 'PUT',
+      url: `/api/v1/segments/${seg.id}/hdd-crossing`,
+      headers: { ...ctx.authHeader(ctx.tokens.engineer), 'content-type': 'application/json' },
+      payload: {
+        entry_latitude: 28.61,
+        entry_longitude: 77.20,
+        exit_latitude: 28.611,
+        exit_longitude: 77.201,
+        bore_length_m: 220,
+        depth_m: 2.4,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+
+    const versions = await ctx.app.inject({
+      method: 'GET',
+      url: `/api/v1/versions/hdd_crossing/${seg.id}`,
+      headers: ctx.authHeader(ctx.tokens.engineer),
+    });
+    expect(versions.statusCode).toBe(200);
+  });
+
   it.todo('PUT /api/v1/segments/:segmentId/duct upserts duct record (FR-005)');
   it.todo('POST /api/v1/segments/:segmentId/cables creates cable record (FR-008)');
   it.todo('POST /api/v1/segments/:segmentId/survey-points creates survey point (FR-002)');

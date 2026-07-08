@@ -129,11 +129,25 @@ export async function submitSegment(client: DbClient, orgId: string, segmentId: 
   const detail = await getSegmentDetail(client, orgId, segmentId);
   if (!detail) throw new Error('Segment not found');
 
+  const { rows: checklistRows } = await client.query(
+    `SELECT p.project_type, pcc.required_items
+     FROM segments s
+     JOIN routes r ON r.id = s.route_id
+     JOIN projects p ON p.id = r.project_id
+     LEFT JOIN project_checklist_configs pcc ON pcc.org_id = p.org_id AND pcc.project_type = p.project_type
+     WHERE s.org_id = $1 AND s.id = $2`,
+    [orgId, segmentId],
+  );
+  const requiredItems = (checklistRows[0]?.required_items as string[] | undefined) ?? ['trench', 'duct', 'photos', 'cable'];
   const missing: string[] = [];
-  if (!detail.trench) missing.push('trench');
-  if (!detail.duct) missing.push('duct');
-  if (detail.photos.length === 0) missing.push('photos');
-  if (detail.cables.length === 0) missing.push('cable');
+  if (requiredItems.includes('trench') && !detail.trench) missing.push('trench');
+  if (requiredItems.includes('duct') && !detail.duct) missing.push('duct');
+  if (requiredItems.includes('photos') && detail.photos.length === 0) missing.push('photos');
+  if (requiredItems.includes('cable') && detail.cables.length === 0) missing.push('cable');
+  if (requiredItems.includes('hdd_crossing')) {
+    const { rows } = await client.query(`SELECT id FROM hdd_crossings WHERE org_id = $1 AND segment_id = $2 LIMIT 1`, [orgId, segmentId]);
+    if (!rows[0]) missing.push('hdd_crossing');
+  }
 
   if (missing.length > 0) {
     return { ok: false as const, missing, segment: detail };

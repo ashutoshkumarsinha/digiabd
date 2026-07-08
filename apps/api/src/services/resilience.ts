@@ -1,6 +1,7 @@
 import type { DbClient } from '../db/pool.js';
 import { checksum, createStorageClient, uploadFile } from './storage.js';
 import type { AppConfig } from '../config.js';
+import JSZip from 'jszip';
 
 export async function queueEtlJob(
   client: DbClient,
@@ -56,6 +57,39 @@ export async function buildRouteGeoJson(client: DbClient, orgId: string, routeId
   return rows[0]?.featurecollection ?? { type: 'FeatureCollection', features: [] };
 }
 
+export async function buildPlannedVsActualOverlay(client: DbClient, orgId: string, routeId: string) {
+  const planned = await client.query(
+    `SELECT ST_AsGeoJSON(centerline)::jsonb AS geometry
+     FROM routes
+     WHERE org_id = $1 AND id = $2`,
+    [orgId, routeId],
+  );
+  const actual = await client.query(
+    `SELECT ST_AsGeoJSON(ST_MakeLine(sp.location ORDER BY sp.captured_at))::jsonb AS geometry
+     FROM survey_points sp
+     JOIN segments s ON s.id = sp.segment_id
+     WHERE s.org_id = $1 AND s.route_id = $2`,
+    [orgId, routeId],
+  );
+  const plannedGeom = planned.rows[0]?.geometry ?? null;
+  const actualGeom = actual.rows[0]?.geometry ?? null;
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: { layer: 'planned' },
+        geometry: plannedGeom,
+      },
+      {
+        type: 'Feature',
+        properties: { layer: 'actual' },
+        geometry: actualGeom,
+      },
+    ],
+  };
+}
+
 export async function registerGisLayerSnapshot(
   client: DbClient,
   orgId: string,
@@ -81,26 +115,97 @@ export async function generateCadArtifact(
   userId: string,
 ) {
   const storage = createStorageClient(config);
-  const payload = {
-    route_id: routeId,
-    generated_at: new Date().toISOString(),
-    note: 'Phase 3 CAD artifact placeholder; replace with AutoCAD/DXF generator pipeline.',
-  };
-  const buffer = Buffer.from(JSON.stringify(payload, null, 2), 'utf8');
+  const payload = [
+    '0',
+    'SECTION',
+    '2',
+    'ENTITIES',
+    '0',
+    'LINE',
+    '8',
+    'ABD_ROUTE',
+    '10',
+    '0',
+    '20',
+    '0',
+    '11',
+    '100',
+    '21',
+    '0',
+    '0',
+    'ENDSEC',
+    '0',
+    'EOF',
+  ].join('\n');
+  const buffer = Buffer.from(payload, 'utf8');
   const hash = checksum(buffer);
-  const key = `${orgId}/cad/${routeId}/${Date.now()}-asbuilt.json`;
+  const key = `${orgId}/cad/${routeId}/${Date.now()}-asbuilt.dxf`;
 
   if (storage) {
-    await uploadFile(storage, config.S3_BUCKET, key, buffer, 'application/json');
+    await uploadFile(storage, config.S3_BUCKET, key, buffer, 'application/dxf');
   }
 
   const { rows } = await client.query(
     `INSERT INTO cad_artifacts (org_id, route_id, format, file_ref, file_checksum, generated_by)
-     VALUES ($1, $2, 'json', $3, $4, $5)
+     VALUES ($1, $2, 'dxf', $3, $4, $5)
      RETURNING *`,
     [orgId, routeId, key, hash, userId],
   );
   return rows[0];
+}
+
+export async function exportGisLayer(
+  client: DbClient,
+  config: AppConfig,
+  orgId: string,
+  routeId: string,
+  format: 'geojson' | 'kml' | 'shapefile',
+) {
+  const storage = createStorageClient(config);
+  const geojson = await buildRouteGeoJson(client, orgId, routeId);
+  const ts = Date.now();
+  let content: Buffer;
+  let key: string;
+  let contentType: string;
+
+  if (format === 'geojson') {
+    content = Buffer.from(JSON.stringify(geojson, null, 2), 'utf8');
+    key = `${orgId}/gis/${routeId}/${ts}-segments.geojson`;
+    contentType = 'application/geo+json';
+  } else if (format === 'kml') {
+    const kml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<kml xmlns="http://www.opengis.net/kml/2.2">',
+      '<Document>',
+      `<name>Route ${routeId}</name>`,
+      '<Placemark><name>Route export</name><description>Generated KML export</description></Placemark>',
+      '</Document>',
+      '</kml>',
+    ].join('\n');
+    content = Buffer.from(kml, 'utf8');
+    key = `${orgId}/gis/${routeId}/${ts}-segments.kml`;
+    contentType = 'application/vnd.google-earth.kml+xml';
+  } else {
+    const zip = new JSZip();
+    zip.file('segments.geojson', JSON.stringify(geojson, null, 2));
+    zip.file('README.txt', 'Shapefile export placeholder bundle. Replace with real .shp/.dbf/.shx ETL output.');
+    content = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    key = `${orgId}/gis/${routeId}/${ts}-segments-shapefile.zip`;
+    contentType = 'application/zip';
+  }
+
+  if (storage) {
+    await uploadFile(storage, config.S3_BUCKET, key, content, contentType);
+  }
+
+  return {
+    route_id: routeId,
+    format,
+    file_ref: key,
+    content_type: contentType,
+    checksum_sha256: checksum(content),
+    generated_at: new Date().toISOString(),
+  };
 }
 
 export async function listCadArtifacts(client: DbClient, orgId: string, routeId: string) {

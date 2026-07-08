@@ -53,6 +53,7 @@ npm run db:up
 npm run db:migrate:phase2
 npm run db:migrate:phase3
 npm run db:migrate:phase4
+npm run db:migrate:phase5
 npm run dev
 npm run dev:web
 bash scripts/smoke-test-phase4.sh

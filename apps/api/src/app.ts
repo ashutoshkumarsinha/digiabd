@@ -117,7 +117,7 @@ export async function buildApp(config: AppConfig) {
   });
 
   // Lightweight health endpoint used by smoke tests and orchestration.
-  app.get('/health', async () => {
+  app.get('/health', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async () => {
     await pool.query('SELECT 1');
     return {
       status: 'ok',

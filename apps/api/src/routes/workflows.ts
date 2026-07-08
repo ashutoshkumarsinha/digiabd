@@ -62,9 +62,27 @@ export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Poo
         });
       }
 
-      const deviation = await withOrgContext(pool, user.orgId, (client) =>
-        abd.approveDeviation(client, user.orgId, user.sub, request.params.deviationId, body.decision, body.comments),
-      );
+      let deviation;
+      try {
+        deviation = await withOrgContext(pool, user.orgId, (client) =>
+          abd.approveDeviation(
+            client,
+            user.orgId,
+            user.sub,
+            user.role,
+            request.params.deviationId,
+            body.decision,
+            body.comments,
+          ),
+        );
+      } catch (error) {
+        return reply.status(409).send({
+          type: 'https://digiabd.io/errors/conflict',
+          title: 'Approval Conflict',
+          status: 409,
+          detail: error instanceof Error ? error.message : 'Approval transition conflict',
+        });
+      }
 
       if (body.decision === 'approved') {
         void emitAbdEvent(pool, user.orgId, 'abd.deviation.approved', {
@@ -74,6 +92,38 @@ export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Poo
       }
 
       return reply.send(deviation);
+    },
+  );
+
+  app.post<{ Params: { closureId: string } }>(
+    '/api/v1/closures/:closureId/otdr',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const user = getAuthUser(request);
+      const storage = createStorageClient(app.config);
+      const data = await request.file();
+      if (!data) {
+        return reply.status(400).send({
+          type: 'https://digiabd.io/errors/validation',
+          title: 'Validation Error',
+          status: 400,
+          detail: 'OTDR file is required',
+        });
+      }
+      const buffer = await data.toBuffer();
+      const fileHash = checksum(buffer);
+      const key = `${user.orgId}/otdr/${request.params.closureId}/${randomUUID()}-${data.filename}`;
+      if (storage) {
+        await uploadFile(storage, app.config.S3_BUCKET, key, buffer, data.mimetype || 'application/octet-stream');
+      }
+      const otdr = await withOrgContext(pool, user.orgId, (client) =>
+        abd.addOtdrTest(client, user.orgId, user.sub, {
+          closure_id: request.params.closureId,
+          file_ref: key,
+          file_checksum: fileHash,
+        }),
+      );
+      return reply.status(201).send(otdr);
     },
   );
 }

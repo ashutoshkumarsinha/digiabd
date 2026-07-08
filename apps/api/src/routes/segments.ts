@@ -103,4 +103,50 @@ export async function registerSegmentRoutes(app: FastifyInstance, pool: pg.Pool)
       return reply.send({ message: 'Trench record saved', segment });
     },
   );
+
+  app.put<{ Params: { segmentId: string } }>(
+    '/api/v1/segments/:segmentId/hdd-crossing',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const user = getAuthUser(request);
+      const body = request.body as {
+        entry_latitude: number;
+        entry_longitude: number;
+        exit_latitude: number;
+        exit_longitude: number;
+        bore_length_m: number;
+        depth_m?: number;
+        pipe_spec?: string;
+      };
+      if (
+        body?.entry_latitude == null ||
+        body?.entry_longitude == null ||
+        body?.exit_latitude == null ||
+        body?.exit_longitude == null ||
+        body?.bore_length_m == null
+      ) {
+        return reply.status(400).send({
+          type: 'https://digiabd.io/errors/validation',
+          title: 'Validation Error',
+          status: 400,
+          detail: 'entry/exit coordinates and bore_length_m are required',
+        });
+      }
+      await withOrgContext(pool, user.orgId, (client) =>
+        abd.upsertHddCrossing(client, user.orgId, request.params.segmentId, body),
+      );
+      return reply.send({ message: 'HDD crossing record saved' });
+    },
+  );
+
+  app.get<{ Params: { entityType: string; entityId: string } }>(
+    '/api/v1/versions/:entityType/:entityId',
+    { preHandler: [app.authenticate] },
+    async (request) => {
+      const user = getAuthUser(request);
+      return withOrgContext(pool, user.orgId, (client) =>
+        abd.listRecordVersions(client, user.orgId, request.params.entityType, request.params.entityId),
+      );
+    },
+  );
 }

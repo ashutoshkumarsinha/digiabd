@@ -33,11 +33,11 @@ P0 partial/deferred items are the primary go-live gaps.
 | FR-003 | Offline capture + auto sync | `POST /api/v1/sync/batch`; `apps/mobile/` offline queue | Implemented | `scripts/smoke-test-phase2.sh` |
 | FR-004 | Trenching attributes | `PUT /api/v1/segments/:segmentId/trench` | Implemented | `scripts/smoke-test.sh` |
 | FR-005 | Ducting attributes | `PUT /api/v1/segments/:segmentId/duct` | Implemented | `scripts/smoke-test-phase2.sh` |
-| FR-006 | HDD crossing details | — | Deferred | — |
+| FR-006 | HDD crossing details | `PUT /api/v1/segments/:segmentId/hdd-crossing` | Implemented | `scripts/smoke-test-phase2.sh`; `apps/api/src/__tests__/field-capture.routes.test.ts` |
 | FR-007 | Geo-tagged photos with metadata | `POST /api/v1/segments/:segmentId/photos` (MinIO) | Implemented | manual / web upload |
 | FR-008 | Cable specifications | `POST /api/v1/segments/:segmentId/cables` | Implemented | `scripts/smoke-test-phase2.sh` |
 | FR-009 | Joint/closure locations | `POST /api/v1/segments/:segmentId/closures` | Implemented | `scripts/smoke-test-phase2.sh` |
-| FR-010 | OTDR test uploads (PDF/CSV) | Schema only (`otdr_results` table); no upload route | Deferred | — |
+| FR-010 | OTDR test uploads (PDF/CSV) | `POST /api/v1/closures/:closureId/otdr` | Implemented | `scripts/smoke-test-phase2.sh` |
 | FR-011 | Incomplete ABD package flag before submit | `POST /api/v1/segments/:segmentId/submit` → 422 | Implemented | `scripts/smoke-test-phase2.sh` |
 | FR-012 | Barcode/QR scanning for asset tags | — | Deferred | — |
 
@@ -48,9 +48,9 @@ P0 partial/deferred items are the primary go-live gaps.
 | ID | Requirement (abbrev.) | API / Component | Status | Test |
 |---|---|---|---|---|
 | FR-020 | Record deviations with evidence | `POST /api/v1/deviations` | Implemented | `scripts/smoke-test.sh` |
-| FR-021 | Configurable approval workflow | `POST /api/v1/deviations/:id/approve` (fixed Supervisor→OIC path) | Partial | manual |
+| FR-021 | Configurable approval workflow | `PUT/GET /api/v1/projects/:projectId/workflow/approval-chain`; `POST /api/v1/deviations/:id/approve` | Implemented | API integration + manual |
 | FR-022 | Full approval audit trail | `approval_actions` table; governance audit export | Partial | `scripts/smoke-test-phase4.sh` (export) |
-| FR-023 | Planned vs actual GIS overlay | — | Deferred | — |
+| FR-023 | Planned vs actual GIS overlay | `GET /api/v1/gis/routes/:routeId/overlay` | Implemented | `scripts/smoke-test-phase3.sh` |
 | FR-024 | Block sign-off with open deviations | `POST /api/v1/segments/:segmentId/sign-off` → 422 | Implemented | manual |
 | FR-025 | Digital signature / OTP sign-off | — | Deferred | — |
 
@@ -62,7 +62,7 @@ P0 partial/deferred items are the primary go-live gaps.
 |---|---|---|---|---|
 | FR-030 | Centralized cloud repository | PostgreSQL + PostGIS + MinIO (`docker-compose`) | Implemented | infra / `npm run db:up` |
 | FR-031 | Advanced search (bbox, asset IDs, etc.) | `GET /api/v1/noc/lookup`, `GET /api/v1/segments/:id`, segment detail | Partial | `scripts/smoke-test.sh` (NOC) |
-| FR-032 | Record versioning | — | Deferred | — |
+| FR-032 | Record versioning | `record_versions` table; `GET /api/v1/versions/:entityType/:entityId` | Implemented | manual API verification |
 | FR-033 | Audit package export (ZIP/PDF + GIS) | `POST /api/v1/governance/audit/export` (ZIP metadata + GeoJSON + audit log bundle) | Implemented | `scripts/smoke-test-phase4.sh`; `apps/api/src/__tests__/governance.routes.test.ts` |
 | FR-034 | Bulk legacy import | — | Deferred | — |
 
@@ -73,8 +73,8 @@ P0 partial/deferred items are the primary go-live gaps.
 | ID | Requirement (abbrev.) | API / Component | Status | Test |
 |---|---|---|---|---|
 | FR-040 | GIS layers (centerline, closures, crossings) | `GET /api/v1/gis/routes/:routeId/geojson` | Partial | `scripts/smoke-test-phase3.sh` |
-| FR-041 | Export GeoJSON, Shapefile, KML, WMS/WFS | GeoJSON + `GET /api/v1/gis/wms/capabilities` | Partial | `scripts/smoke-test-phase3.sh` |
-| FR-042 | As-built AutoCAD via ETL | `POST /api/v1/cad/routes/:routeId/generate` (JSON placeholder) | Partial | `scripts/smoke-test-phase3.sh` |
+| FR-041 | Export GeoJSON, Shapefile, KML, WMS/WFS | `GET /api/v1/gis/routes/:routeId/export?format=geojson|kml|shapefile` + WMS capabilities | Implemented | `scripts/smoke-test-phase3.sh` |
+| FR-042 | As-built AutoCAD via ETL | `POST /api/v1/cad/routes/:routeId/generate` (DXF artifact) | Implemented | `scripts/smoke-test-phase3.sh` |
 | FR-043 | GIS feature metadata tags | GeoJSON `properties` on features | Partial | `scripts/smoke-test-phase3.sh` |
 | FR-044 | GPS vs alignment reconciliation | — | Deferred | — |
 
@@ -98,7 +98,7 @@ P0 partial/deferred items are the primary go-live gaps.
 | ID | Requirement (abbrev.) | API / Component | Status | Test |
 |---|---|---|---|---|
 | FR-060 | RBAC with project/vendor scope | JWT roles + `requireRoles` middleware | Implemented | manual role matrix |
-| FR-061 | Configurable mandatory checklists | — | Deferred | — |
+| FR-061 | Configurable mandatory checklists | `GET/PUT /api/v1/checklists/:projectType`; enforced in `POST /api/v1/segments/:segmentId/submit` | Implemented | `scripts/smoke-test-phase2.sh` |
 | FR-062 | Multi-tenant project isolation | RLS policies (`database/migrations`); org context | Implemented | manual |
 | FR-063 | Training sandbox environments | — | Deferred | — |
 
@@ -138,15 +138,12 @@ P0 partial/deferred items are the primary go-live gaps.
 
 | FR | Gap | Recommended action |
 |---|---|---|
-| FR-006 | No HDD crossing API | Add `PUT /segments/:id/hdd-crossing` + mobile form |
-| FR-010 | No OTDR upload endpoint | Add multipart upload + link to closures/spans |
-| FR-021 | Fixed approval chain | Make workflow steps configurable per project |
-| FR-023 | No planned-route overlay | Import design alignment + map layer API |
-| FR-032 | No versioning | Add `record_versions` table + read APIs |
+| FR-006 | Mobile form coverage pending | Add explicit mobile UX for HDD capture |
+| FR-010 | OTDR parser minimal | Add semantic parser/validation for OTDR CSV/PDF content |
+| FR-021 | Workflow rules basic | Add conditional workflow branching per category/severity |
 | FR-033 | PDF rendering still placeholder | Add rich PDF renderer/template pipeline for branded audit documents |
-| FR-041 | Shapefile/KML missing | Add export jobs via ETL pipeline |
-| FR-042 | CAD placeholder only | Integrate DXF/DWG generation worker |
-| FR-061 | No checklist config | Admin API for mandatory fields per `project_type` |
+| FR-041 | Shapefile bundle is placeholder-based | Replace with true `.shp/.dbf/.shx` generation |
+| FR-042 | CAD generation is baseline DXF | Upgrade to geometry-rich production CAD pipeline |
 | FR-073 | No production API gateway | Deploy Kong/AWS API Gateway in front of service |
 | FR-074 | No retention policies | Add tenant policy tables + purge jobs |
 | FR-090 | No email/SMS | Wire escalation events to notification provider |
@@ -167,14 +164,18 @@ All endpoints below are documented in [openapi.yaml](./openapi.yaml).
 | GET | `/api/v1/organizations` | FR-070, FR-071 |
 | GET/POST | `/api/v1/projects` | FR-070 |
 | GET/POST | `/api/v1/projects/:projectId/routes` | FR-070 |
+| GET/PUT | `/api/v1/projects/:projectId/workflow/approval-chain` | FR-021 |
+| GET/PUT | `/api/v1/checklists/:projectType` | FR-061 |
 | GET/POST | `/api/v1/routes/:routeId/segments` | FR-001 |
 | GET | `/api/v1/segments/:segmentId` | FR-031 |
 | GET | `/api/v1/segments/:segmentId/detail` | FR-031 |
 | PUT | `/api/v1/segments/:segmentId/trench` | FR-004 |
+| PUT | `/api/v1/segments/:segmentId/hdd-crossing` | FR-006 |
 | PUT | `/api/v1/segments/:segmentId/duct` | FR-005 |
 | POST | `/api/v1/segments/:segmentId/cables` | FR-008 |
 | POST | `/api/v1/segments/:segmentId/survey-points` | FR-002 |
 | POST | `/api/v1/segments/:segmentId/closures` | FR-009 |
+| POST | `/api/v1/closures/:closureId/otdr` | FR-010 |
 | POST | `/api/v1/segments/:segmentId/photos` | FR-007 |
 | POST | `/api/v1/segments/:segmentId/submit` | FR-011 |
 | POST | `/api/v1/segments/:segmentId/sign-off` | FR-024 |
@@ -189,10 +190,13 @@ All endpoints below are documented in [openapi.yaml](./openapi.yaml).
 | GET | `/api/v1/notifications` | FR-090 |
 | GET | `/api/v1/gis/wms/capabilities` | FR-041 |
 | GET | `/api/v1/gis/routes/:routeId/geojson` | FR-040, FR-041, FR-043 |
+| GET | `/api/v1/gis/routes/:routeId/overlay` | FR-023 |
+| GET | `/api/v1/gis/routes/:routeId/export` | FR-041 |
 | POST | `/api/v1/cad/routes/:routeId/generate` | FR-042 |
 | GET | `/api/v1/cad/routes/:routeId/artifacts` | FR-042 |
 | POST | `/api/v1/etl/routes/:routeId/jobs` | FR-042 |
 | GET | `/api/v1/etl/jobs` | FR-042 |
+| GET | `/api/v1/versions/:entityType/:entityId` | FR-032 |
 | GET | `/api/v1/governance/dashboard` | FR-050 |
 | GET | `/api/v1/governance/projects/:projectId/sla` | FR-052 |
 | GET | `/api/v1/governance/segments/:segmentId/compliance` | FR-050, FR-055 |

@@ -182,6 +182,78 @@ paths:
         '201':
           description: Route created
 
+  /api/v1/projects/{projectId}/workflow/approval-chain:
+    get:
+      tags: [Deviations]
+      summary: Get project deviation approval chain
+      operationId: getProjectApprovalWorkflow
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Approval chain
+    put:
+      tags: [Deviations]
+      summary: Update project deviation approval chain
+      operationId: updateProjectApprovalWorkflow
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approval_chain]
+              properties:
+                approval_chain:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Approval chain updated
+
+  /api/v1/checklists/{projectType}:
+    get:
+      tags: [Projects]
+      summary: Get mandatory checklist configuration by project type
+      operationId: getChecklistConfig
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: projectType
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Checklist config
+    put:
+      tags: [Projects]
+      summary: Update mandatory checklist configuration by project type
+      operationId: updateChecklistConfig
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: projectType
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [required_items]
+              properties:
+                required_items:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Checklist config updated
+
   /api/v1/routes/{routeId}/segments:
     get:
       tags: [Segments]
@@ -257,6 +329,33 @@ paths:
         '200':
           description: Trench saved
 
+  /api/v1/segments/{segmentId}/hdd-crossing:
+    put:
+      tags: [Field Capture]
+      summary: Upsert HDD crossing details
+      operationId: upsertHddCrossing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/segmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entry_latitude, entry_longitude, exit_latitude, exit_longitude, bore_length_m]
+              properties:
+                entry_latitude: { type: number }
+                entry_longitude: { type: number }
+                exit_latitude: { type: number }
+                exit_longitude: { type: number }
+                bore_length_m: { type: number }
+                depth_m: { type: number }
+                pipe_spec: { type: string }
+      responses:
+        '200':
+          description: HDD crossing saved
+
   /api/v1/segments/{segmentId}/duct:
     put:
       tags: [Field Capture]
@@ -328,6 +427,30 @@ paths:
       responses:
         '201':
           description: Closure created
+
+  /api/v1/closures/{closureId}/otdr:
+    post:
+      tags: [Field Capture]
+      summary: Upload OTDR test file for closure
+      operationId: uploadOtdrTest
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: closureId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: OTDR test uploaded
 
   /api/v1/segments/{segmentId}/photos:
     post:
@@ -421,6 +544,8 @@ paths:
       responses:
         '200':
           description: Decision recorded
+        '409':
+          description: Invalid approval stage transition
 
   /api/v1/noc/lookup:
     get:
@@ -576,6 +701,33 @@ paths:
         '200':
           description: GeoJSON FeatureCollection
 
+  /api/v1/gis/routes/{routeId}/overlay:
+    get:
+      tags: [GIS]
+      summary: Planned versus actual route overlay
+      operationId: plannedActualOverlay
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/routeId'
+      responses:
+        '200':
+          description: Overlay feature collection
+
+  /api/v1/gis/routes/{routeId}/export:
+    get:
+      tags: [GIS]
+      summary: Export route GIS artifact by format
+      operationId: exportGisByFormat
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/routeId'
+        - name: format
+          in: query
+          schema: { type: string, enum: [geojson, kml, shapefile] }
+      responses:
+        '200':
+          description: GIS export artifact metadata
+
   /api/v1/cad/routes/{routeId}/generate:
     post:
       tags: [CAD]
@@ -634,6 +786,25 @@ paths:
       responses:
         '200':
           description: ETL job list
+
+  /api/v1/versions/{entityType}/{entityId}:
+    get:
+      tags: [Audit]
+      summary: List version history for entity
+      operationId: listRecordVersions
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: entityType
+          in: path
+          required: true
+          schema: { type: string }
+        - name: entityId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Version history list
 
   /api/v1/governance/dashboard:
     get:

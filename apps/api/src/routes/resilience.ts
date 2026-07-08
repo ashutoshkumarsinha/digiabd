@@ -51,6 +51,38 @@ export async function registerResilienceRoutes(
     },
   );
 
+  app.get<{ Params: { routeId: string } }>(
+    '/api/v1/gis/routes/:routeId/overlay',
+    { preHandler: [app.authenticate] },
+    async (request) => {
+      const user = getAuthUser(request);
+      return withOrgContext(pool, user.orgId, (client) =>
+        resilience.buildPlannedVsActualOverlay(client, user.orgId, request.params.routeId),
+      );
+    },
+  );
+
+  app.get<{ Params: { routeId: string } }>(
+    '/api/v1/gis/routes/:routeId/export',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const user = getAuthUser(request);
+      const query = request.query as { format?: 'geojson' | 'kml' | 'shapefile' };
+      const format = query.format ?? 'geojson';
+      if (!['geojson', 'kml', 'shapefile'].includes(format)) {
+        return reply.status(400).send({
+          type: 'https://digiabd.io/errors/validation',
+          title: 'Validation Error',
+          status: 400,
+          detail: 'format must be one of: geojson, kml, shapefile',
+        });
+      }
+      return withOrgContext(pool, user.orgId, (client) =>
+        resilience.exportGisLayer(client, config, user.orgId, request.params.routeId, format),
+      );
+    },
+  );
+
   app.post<{ Params: { routeId: string } }>(
     '/api/v1/cad/routes/:routeId/generate',
     { preHandler: [app.authenticate, requireRoles('gis_engineer', 'inspector_oic', 'program_manager')] },

@@ -16,6 +16,10 @@ echo "==> Governance dashboard"
 curl -sf "$API_URL/api/v1/governance/dashboard" \
   -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.projects, .segments'
 
+echo "==> Approval workflow config"
+curl -sf "$API_URL/api/v1/projects/$PROJECT_ID/workflow/approval-chain" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.approval_chain'
+
 echo "==> Project SLA"
 curl -sf "$API_URL/api/v1/governance/projects/$PROJECT_ID/sla" \
   -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.sla_status, .abd_completeness_rate'

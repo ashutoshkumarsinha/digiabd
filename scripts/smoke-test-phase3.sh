@@ -25,6 +25,18 @@ echo "==> GeoJSON export"
 curl -sf "$API_URL/api/v1/gis/routes/$ROUTE_ID/geojson" \
   -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.type'
 
+echo "==> Planned vs actual overlay"
+curl -sf "$API_URL/api/v1/gis/routes/$ROUTE_ID/overlay" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.type, (.features | length)'
+
+echo "==> GIS export formats (GeoJSON/KML/Shapefile bundle)"
+curl -sf "$API_URL/api/v1/gis/routes/$ROUTE_ID/export?format=geojson" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.format, .file_ref'
+curl -sf "$API_URL/api/v1/gis/routes/$ROUTE_ID/export?format=kml" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.format, .file_ref'
+curl -sf "$API_URL/api/v1/gis/routes/$ROUTE_ID/export?format=shapefile" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.format, .file_ref'
+
 echo "==> CAD generate"
 curl -sf -X POST "$API_URL/api/v1/cad/routes/$ROUTE_ID/generate" \
   -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.format'

@@ -34,9 +34,30 @@ curl -sf -X POST "$API_URL/api/v1/segments/$SEGMENT_ID/cables" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"core_count":48,"laid_length_m":500,"drum_number":"DRUM-2026-001"}' | "$JQ_BIN" .
 
+echo "==> Save HDD crossing"
+curl -sf -X PUT "$API_URL/api/v1/segments/$SEGMENT_ID/hdd-crossing" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"entry_latitude":28.6100,"entry_longitude":77.2000,"exit_latitude":28.6110,"exit_longitude":77.2010,"bore_length_m":220,"depth_m":2.3}' | "$JQ_BIN" .
+
+echo "==> Create closure and upload OTDR"
+CLOSURE=$(curl -sf -X POST "$API_URL/api/v1/segments/$SEGMENT_ID/closures" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"latitude":28.6105,"longitude":77.2005,"closure_type":"joint_closure","splice_count":24}')
+CLOSURE_ID=$(echo "$CLOSURE" | "$JQ_BIN" -r .id)
+OTDR_FILE=$(mktemp)
+printf 'trace_id,loss_db\nsample,0.12\n' > "$OTDR_FILE"
+curl -sf -X POST "$API_URL/api/v1/closures/$CLOSURE_ID/otdr" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@$OTDR_FILE;type=text/csv" | "$JQ_BIN" '.id, .file_ref'
+rm -f "$OTDR_FILE"
+
 echo "==> Segment detail"
 curl -sf "$API_URL/api/v1/segments/$SEGMENT_ID/detail" \
   -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '{completeness, status, trench, duct, cables: (.cables|length)}'
+
+echo "==> Checklist config"
+curl -sf "$API_URL/api/v1/checklists/urban" \
+  -H "Authorization: Bearer $TOKEN" | "$JQ_BIN" '.project_type, .required_items'
 
 echo "==> Offline sync batch"
 curl -sf -X POST "$API_URL/api/v1/sync/batch" \
