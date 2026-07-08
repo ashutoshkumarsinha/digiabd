@@ -1,10 +1,22 @@
 import 'dotenv/config';
 import { loadConfig } from './config.js';
-import { buildApp } from './app.js';
+import { initObservability, shutdownObservability } from './observability/telemetry.js';
 
 async function main() {
   const config = loadConfig();
+  await initObservability(config);
+  const { buildApp } = await import('./app.js');
   const app = await buildApp(config);
+
+  const shutdown = async (signal: NodeJS.Signals) => {
+    app.log.info({ signal }, 'Shutting down API');
+    await app.close();
+    await shutdownObservability();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 
   try {
     await app.listen({ port: config.PORT, host: '0.0.0.0' });

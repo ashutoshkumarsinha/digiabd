@@ -18,6 +18,7 @@ import { registerResilienceRoutes } from './routes/resilience.js';
 import { registerSegmentRoutes } from './routes/segments.js';
 import { registerDeviationRoutes, registerNocRoutes, registerPhotoRoutes } from './routes/workflows.js';
 import { closeEventBus, initEventBus, isEventBusEnabled } from './services/events.js';
+import { recordHttpRequestMetric, recordOtelLog } from './observability/telemetry.js';
 
 export async function buildApp(config: AppConfig) {
   const app = Fastify({
@@ -58,7 +59,34 @@ export async function buildApp(config: AppConfig) {
   app.decorate('authenticate', authenticate);
 
   app.addHook('onRequest', async (request, reply) => {
+    request.observabilityStartNs = process.hrtime.bigint();
     reply.header('X-Request-ID', request.id);
+  });
+
+  app.addHook('onResponse', async (request, reply) => {
+    const startedAt = request.observabilityStartNs;
+    if (!startedAt) return;
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+    const route = request.routeOptions.url ?? request.url;
+    const statusCode = reply.statusCode;
+
+    recordHttpRequestMetric({
+      method: request.method,
+      route,
+      statusCode,
+      durationMs,
+    });
+
+    recordOtelLog({
+      severityText: statusCode >= 500 ? 'ERROR' : statusCode >= 400 ? 'WARN' : 'INFO',
+      body: 'http.server.request',
+      attributes: {
+        'http.request.method': request.method,
+        'http.route': route,
+        'http.response.status_code': statusCode,
+        'http.server.duration_ms': durationMs,
+      },
+    });
   });
 
   app.addHook('preHandler', async (request, reply) => {
@@ -96,6 +124,15 @@ export async function buildApp(config: AppConfig) {
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
+    recordOtelLog({
+      severityText: 'ERROR',
+      body: 'http.server.error',
+      attributes: {
+        'http.request.method': request.method,
+        'http.route': request.routeOptions.url ?? request.url,
+        'error.message': error.message,
+      },
+    });
     reply.status(error.statusCode ?? 500).send({
       type: 'https://digiabd.io/errors/internal',
       title: 'Internal Server Error',
@@ -117,6 +154,10 @@ export async function buildApp(config: AppConfig) {
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: typeof authenticate;
+  }
+
+  interface FastifyRequest {
+    observabilityStartNs?: bigint;
   }
 }
 

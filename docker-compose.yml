@@ -94,6 +94,8 @@ services:
         condition: service_completed_successfully
       redpanda:
         condition: service_healthy
+      signoz:
+        condition: service_started
     environment:
       NODE_ENV: development
       PORT: 3000
@@ -109,11 +111,30 @@ services:
       S3_USE_SSL: "false"
       JWT_SECRET: dev-jwt-secret-change-in-production
       CORS_ORIGIN: http://localhost:5173
+      OTEL_ENABLED: "true"
+      OTEL_SERVICE_NAME: digiabd-api
+      OTEL_SERVICE_VERSION: 0.4.0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://signoz:4318
+      OTEL_METRIC_EXPORT_INTERVAL_MS: 10000
     ports:
       - "3000:3000"
     volumes:
       - ./apps/api/src:/app/src:ro
 
+  signoz:
+    image: signoz/signoz-standalone:latest
+    container_name: digiabd-signoz
+    privileged: true
+    ports:
+      - "8080:8080"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - signoz_data:/var/lib/signoz
+      - signoz_clickhouse:/var/lib/clickhouse
+
 volumes:
   postgres_data:
   minio_data:
+  signoz_data:
+  signoz_clickhouse:

@@ -15,6 +15,8 @@
     "test": "npm run test -w @digiabd/api",
     "lint": "npm run lint -w @digiabd/api",
     "db:up": "docker compose up -d postgres redis minio minio-init redpanda",
+    "observability:up": "docker compose up -d signoz",
+    "observability:down": "docker compose stop signoz",
     "db:migrate:phase2": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/002_phase2.sql",
     "db:migrate:phase3": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/003_phase3_resilience.sql",
     "db:migrate:phase4": "docker compose exec -T postgres psql -U digiabd -d digiabd -f /docker-entrypoint-initdb.d/004_phase4_governance.sql",

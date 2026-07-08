@@ -40,6 +40,18 @@ npm run dev
 npm run stack:up
 ```
 
+### 5. Observability (OpenTelemetry + SigNoz)
+
+```bash
+npm run observability:up
+```
+
+- SigNoz UI: http://localhost:8080
+- OTLP gRPC ingest: `localhost:4317`
+- OTLP HTTP ingest: `localhost:4318`
+
+The API exports traces, metrics, and OTEL logs via `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
 ## Demo Users
 
 | Email | Role |
@@ -105,4 +117,5 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [Phase 4 Scope](docs/PHASE4_SCOPE.md)
 - [OpenAPI Spec](docs/openapi.yaml) (v0.4.0 — synced with all Phase 1–4 endpoints)
 - [FR Traceability Matrix](docs/FR_TRACEABILITY.md)
+- [Observability Guide](docs/OBSERVABILITY.md)
 - Live API docs at `/docs` when server is running

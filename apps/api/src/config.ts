@@ -27,6 +27,15 @@ const envSchema = z.object({
   OIDC_CLIENT_SECRET: z.string().optional(),
   OIDC_REDIRECT_URI: z.string().optional(),
   AUTH_MODE: z.enum(['dev', 'oidc', 'hybrid']).default('hybrid'),
+  OTEL_ENABLED: z
+    .string()
+    .transform((v) => v === 'true')
+    .default('true'),
+  OTEL_SERVICE_NAME: z.string().default('digiabd-api'),
+  OTEL_SERVICE_VERSION: z.string().default('0.4.0'),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
+  OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
+  OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().default(10000),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
