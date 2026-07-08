@@ -348,15 +348,19 @@ CREATE INDEX idx_joint_closures_location_gist ON joint_closures USING GIST(locat
 -- ---------------------------------------------------------------------------
 
 INSERT INTO organizations (id, name, tier) VALUES
-    ('a0000000-0000-4000-8000-000000000001', 'Demo Telecom Ltd', 'enterprise');
+    ('a0000000-0000-4000-8000-000000000001', 'Demo Telecom Ltd', 'enterprise'),
+    ('a0000000-0000-4000-8000-000000000002', 'Second Demo Operator', 'standard');
 
 INSERT INTO users (id, org_id, email, full_name, role) VALUES
     ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'admin@demo.telecom', 'Demo Admin', 'enterprise_admin'),
     ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'engineer@demo.telecom', 'Field Engineer', 'field_engineer'),
-    ('b0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'oic@demo.telecom', 'Inspector OIC', 'inspector_oic');
+    ('b0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'oic@demo.telecom', 'Inspector OIC', 'inspector_oic'),
+    ('b0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000002', 'engineer2@demo.telecom', 'Field Engineer 2', 'field_engineer');
 
 INSERT INTO projects (id, org_id, name, client_name, vendor_name, project_type, status) VALUES
-    ('c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'City Fiber Ring Phase 1', 'State Broadband Board', 'OFC Vendor A', 'urban', 'active');
+    ('c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'City Fiber Ring Phase 1', 'State Broadband Board', 'OFC Vendor A', 'urban', 'active'),
+    ('c0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'Second Operator Pilot', 'Railways', 'OFC Vendor B', 'rural', 'active');
 
 INSERT INTO routes (id, org_id, project_id, name, total_length_km, status) VALUES
-    ('d0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 'Ring Segment North', 12.5, 'in_progress');
+    ('d0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 'Ring Segment North', 12.5, 'in_progress'),
+    ('d0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000002', 'Pilot Route', 3.1, 'in_progress');
