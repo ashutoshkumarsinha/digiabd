@@ -81,3 +81,12 @@ The SRE dashboard includes:
    - **Traces** for `digiabd-api`
    - **Metrics** for `http.server.requests` and `http.server.duration`
    - **Logs** filtered by service `digiabd-api`
+
+## Keycloak (OIDC) notes
+
+If you run the included Keycloak stack (`npm run keycloak:up`), set:
+
+- `OIDC_ISSUER=http://localhost:18080/realms/digiabd`
+- `OIDC_CLIENT_ID=digiabd-web`
+
+The API will accept Keycloak JWTs (Bearer tokens) and map Keycloak realm roles to application roles.

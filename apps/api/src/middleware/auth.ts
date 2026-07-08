@@ -1,11 +1,28 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AuthUser } from '../types/index.js';
+import type { AppConfig } from '../config.js';
+import { isOidcEnabled } from '../config.js';
+import { verifyOidcAccessToken } from '../auth/oidc.js';
 
 export async function authenticate(
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
   try {
+    const config = request.server.config as AppConfig | undefined;
+    const auth = request.headers.authorization;
+
+    if (config && isOidcEnabled(config) && auth?.startsWith('Bearer ')) {
+      const token = auth.slice('Bearer '.length);
+      try {
+        const user = await verifyOidcAccessToken({ config, token });
+        (request as unknown as { user: AuthUser }).user = user;
+        return;
+      } catch {
+        // Fall through to internal JWT verification (hybrid mode).
+      }
+    }
+
     await request.jwtVerify();
   } catch {
     reply.status(401).send({

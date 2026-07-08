@@ -27,6 +27,7 @@ export async function buildApp(config: AppConfig) {
     genReqId: () => crypto.randomUUID(),
   });
 
+  app.decorate('config', config);
   const pool = createPool(config);
 
   await initEventBus(config).catch((err) => {
@@ -154,6 +155,7 @@ export async function buildApp(config: AppConfig) {
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: typeof authenticate;
+    config: AppConfig;
   }
 
   interface FastifyRequest {

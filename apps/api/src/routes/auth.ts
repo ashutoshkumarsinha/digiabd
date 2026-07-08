@@ -67,7 +67,7 @@ export async function registerAuthRoutes(app: FastifyInstance, pool: pg.Pool, co
       issuer: config.OIDC_ISSUER,
       client_id: config.OIDC_CLIENT_ID,
       redirect_uri: config.OIDC_REDIRECT_URI,
-      note: 'Configure Azure AD / Okta app registration with these values. Token exchange endpoint ships in Phase 2.1.',
+      note: 'OIDC is enabled. For local dev you can run Keycloak (realm: digiabd) and use these values for the web PKCE flow.',
     };
   });
 

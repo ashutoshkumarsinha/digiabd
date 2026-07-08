@@ -1,0 +1,84 @@
+{
+  "realm": "digiabd",
+  "enabled": true,
+  "displayName": "Digital ABD",
+  "loginTheme": "keycloak",
+  "roles": {
+    "realm": [
+      { "name": "field_engineer" },
+      { "name": "site_supervisor" },
+      { "name": "inspector_oic" },
+      { "name": "gis_engineer" },
+      { "name": "noc_operator" },
+      { "name": "program_manager" },
+      { "name": "auditor" },
+      { "name": "vendor_admin" },
+      { "name": "enterprise_admin" },
+      { "name": "system_admin" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "digiabd-web",
+      "name": "Digital ABD Web",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "orgId-hardcoded-demo",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "orgId",
+            "claim.value": "a0000000-0000-4000-8000-000000000001",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "engineer@demo.telecom",
+      "email": "engineer@demo.telecom",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Field",
+      "lastName": "Engineer",
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "realmRoles": ["field_engineer"]
+    },
+    {
+      "username": "admin@demo.telecom",
+      "email": "admin@demo.telecom",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "realmRoles": ["enterprise_admin"]
+    },
+    {
+      "username": "oic@demo.telecom",
+      "email": "oic@demo.telecom",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Inspector",
+      "lastName": "OIC",
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "realmRoles": ["inspector_oic"]
+    }
+  ]
+}
+
