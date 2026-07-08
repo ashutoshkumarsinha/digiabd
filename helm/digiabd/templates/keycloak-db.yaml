@@ -1,0 +1,69 @@
+{{- if and .Values.keycloak.enabled .Values.keycloakDb.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "digiabd.fullname" . }}-keycloak-db
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "digiabd.fullname" . }}-keycloak-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "digiabd.name" . }}-keycloak-db
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "digiabd.name" . }}-keycloak-db
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: keycloak-db
+          image: {{ .Values.keycloakDb.image }}
+          ports:
+            - containerPort: {{ .Values.keycloakDb.service.port }}
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: KEYCLOAK_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: KEYCLOAK_DB_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: KEYCLOAK_DB_NAME
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.keycloakDb.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digiabd.fullname" . }}-keycloak-db
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: postgres
+      port: {{ .Values.keycloakDb.service.port }}
+      targetPort: postgres
+  selector:
+    app.kubernetes.io/name: {{ include "digiabd.name" . }}-keycloak-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

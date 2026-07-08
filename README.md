@@ -122,4 +122,5 @@ See [docs/MVP_SCOPE.md](docs/MVP_SCOPE.md), [docs/PHASE2_SCOPE.md](docs/PHASE2_S
 - [Observability Guide](docs/OBSERVABILITY.md)
 - [Caddy Reverse Proxy](docs/CADDY.md)
 - [Packer image builds](docs/PACKER.md)
+- [Helm deployment](docs/HELM.md)
 - Live API docs at `/docs` when server is running

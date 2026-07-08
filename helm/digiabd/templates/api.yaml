@@ -1,0 +1,116 @@
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digiabd.fullname" . }}-api
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "digiabd.name" . }}-api
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "digiabd.name" . }}-api
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.api.service.port }}
+              name: http
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.api.env.NODE_ENV | quote }}
+            - name: PORT
+              value: {{ .Values.api.env.PORT | quote }}
+            - name: AUTH_MODE
+              value: {{ .Values.api.env.AUTH_MODE | quote }}
+            - name: CORS_ORIGIN
+              value: {{ .Values.api.env.CORS_ORIGIN | quote }}
+            - name: KAFKA_ENABLED
+              value: {{ .Values.api.env.KAFKA_ENABLED | quote }}
+            - name: KAFKA_BROKERS
+              value: "{{ include "digiabd.fullname" . }}-redpanda:{{ .Values.redpanda.service.port }}"
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ include "digiabd.fullname" . }}-postgres:{{ .Values.postgres.service.port }}/$(POSTGRES_DB)"
+            - name: REDIS_URL
+              value: "redis://{{ include "digiabd.fullname" . }}-redis:{{ .Values.redis.service.port }}"
+            - name: S3_ENDPOINT
+              value: "http://{{ include "digiabd.fullname" . }}-minio:{{ .Values.minio.service.apiPort }}"
+            - name: S3_BUCKET
+              value: "digiabd-files"
+            - name: S3_USE_SSL
+              value: "false"
+            - name: OIDC_ISSUER
+              value: "http://{{ include "digiabd.fullname" . }}-keycloak:{{ .Values.keycloak.service.port }}/realms/digiabd"
+            - name: OIDC_CLIENT_ID
+              value: "digiabd-web"
+            - name: OIDC_REDIRECT_URI
+              value: "http://localhost:5173/auth/callback"
+            - name: OTEL_ENABLED
+              value: {{ .Values.api.env.OTEL_ENABLED | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.api.env.OTEL_SERVICE_NAME | quote }}
+            - name: OTEL_SERVICE_VERSION
+              value: {{ .Values.api.env.OTEL_SERVICE_VERSION | quote }}
+            - name: OTEL_METRIC_EXPORT_INTERVAL_MS
+              value: {{ .Values.api.env.OTEL_METRIC_EXPORT_INTERVAL_MS | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://{{ include "digiabd.fullname" . }}-signoz:{{ .Values.signoz.service.otlpHttpPort }}"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: JWT_SECRET
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: S3_SECRET_KEY
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "digiabd.fullname" . }}-secrets
+                  key: POSTGRES_DB
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digiabd.fullname" . }}-api
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.api.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "digiabd.name" . }}-api
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+{{- end }}

@@ -1,0 +1,14 @@
+Digital ABD Helm chart installed.
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+Primary services:
+- API:      {{ include "digiabd.fullname" . }}-api:{{ .Values.api.service.port }}
+- Web:      {{ include "digiabd.fullname" . }}-web:{{ .Values.web.service.port }}
+- Caddy:    {{ include "digiabd.fullname" . }}-caddy:{{ .Values.caddy.service.port }}
+- Keycloak: {{ include "digiabd.fullname" . }}-keycloak:{{ .Values.keycloak.service.port }}
+- SigNoz:   {{ include "digiabd.fullname" . }}-signoz:{{ .Values.signoz.service.uiPort }}
+
+If ingress is disabled, use port-forward:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "digiabd.fullname" . }}-caddy 8088:{{ .Values.caddy.service.port }}

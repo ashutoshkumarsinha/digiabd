@@ -1,0 +1,35 @@
+{{- if .Values.keycloak.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "digiabd.fullname" . }}-keycloak-realm
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+data:
+  realm-digiabd.json: |
+    {
+      "realm": "digiabd",
+      "enabled": true,
+      "roles": {
+        "realm": [
+          {"name":"field_engineer"},
+          {"name":"site_supervisor"},
+          {"name":"inspector_oic"},
+          {"name":"gis_engineer"},
+          {"name":"noc_operator"},
+          {"name":"program_manager"},
+          {"name":"auditor"},
+          {"name":"vendor_admin"},
+          {"name":"enterprise_admin"},
+          {"name":"system_admin"}
+        ]
+      },
+      "clients": [{
+        "clientId": "digiabd-web",
+        "enabled": true,
+        "publicClient": true,
+        "standardFlowEnabled": true,
+        "redirectUris": ["*"]
+      }]
+    }
+{{- end }}

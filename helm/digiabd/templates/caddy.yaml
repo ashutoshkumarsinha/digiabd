@@ -1,0 +1,77 @@
+{{- if .Values.caddy.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digiabd.fullname" . }}-caddy
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "digiabd.name" . }}-caddy
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "digiabd.name" . }}-caddy
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: caddy
+          image: {{ .Values.caddy.image }}
+          ports:
+            - containerPort: {{ .Values.caddy.service.port }}
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/caddy
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "digiabd.fullname" . }}-caddy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digiabd.fullname" . }}-caddy
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.caddy.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.caddy.service.port }}
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: {{ include "digiabd.name" . }}-caddy
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Values.caddy.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "digiabd.fullname" . }}-caddy
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.caddy.ingress.className }}
+  ingressClassName: {{ .Values.caddy.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.caddy.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "digiabd.fullname" . }}-caddy
+                port:
+                  number: {{ .Values.caddy.service.port }}
+  {{- if .Values.caddy.ingress.tls }}
+  tls:
+    {{- toYaml .Values.caddy.ingress.tls | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

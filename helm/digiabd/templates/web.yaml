@@ -1,0 +1,47 @@
+{{- if .Values.web.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "digiabd.fullname" . }}-web
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.web.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "digiabd.name" . }}-web
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "digiabd.name" . }}-web
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      containers:
+        - name: web
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.web.service.port }}
+              name: http
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "digiabd.fullname" . }}-web
+  labels:
+    {{- include "digiabd.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.web.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "digiabd.name" . }}-web
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: {{ .Values.web.service.port }}
+      targetPort: http
+{{- end }}

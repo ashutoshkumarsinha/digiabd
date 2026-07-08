@@ -1,0 +1,141 @@
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  imagePullSecrets: []
+
+secrets:
+  jwtSecret: "change-me-in-production"
+  s3AccessKey: "digiabd"
+  s3SecretKey: "digiabd-secret"
+  keycloakAdminUser: "admin"
+  keycloakAdminPassword: "admin"
+  keycloakDbUser: "keycloak"
+  keycloakDbPassword: "keycloak"
+  keycloakDbName: "keycloak"
+  postgresUser: "digiabd"
+  postgresPassword: "digiabd"
+  postgresDb: "digiabd"
+
+api:
+  enabled: true
+  image:
+    repository: digiabd/api
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 3000
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    AUTH_MODE: hybrid
+    CORS_ORIGIN: "http://localhost:5173"
+    KAFKA_ENABLED: "true"
+    OTEL_ENABLED: "true"
+    OTEL_SERVICE_NAME: "digiabd-api"
+    OTEL_SERVICE_VERSION: "0.4.0"
+    OTEL_METRIC_EXPORT_INTERVAL_MS: "10000"
+  resources: {}
+
+web:
+  enabled: true
+  image:
+    repository: digiabd/web
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 80
+  resources: {}
+
+postgres:
+  enabled: true
+  image: postgis/postgis:16-3.4
+  service:
+    port: 5432
+  persistence:
+    enabled: true
+    size: 10Gi
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  service:
+    port: 6379
+
+minio:
+  enabled: true
+  image: minio/minio:latest
+  service:
+    apiPort: 9000
+    consolePort: 9001
+  persistence:
+    enabled: true
+    size: 10Gi
+
+redpanda:
+  enabled: true
+  image: redpandadata/redpanda:v24.3.1
+  service:
+    port: 9092
+
+keycloak:
+  enabled: true
+  image: quay.io/keycloak/keycloak:26.0
+  service:
+    port: 8080
+
+keycloakDb:
+  enabled: true
+  image: postgres:16-alpine
+  service:
+    port: 5432
+  persistence:
+    enabled: true
+    size: 8Gi
+
+signoz:
+  enabled: true
+  image: signoz/signoz-standalone:latest
+  service:
+    uiPort: 8080
+    otlpGrpcPort: 4317
+    otlpHttpPort: 4318
+  persistence:
+    enabled: true
+    signozSize: 20Gi
+    clickhouseSize: 20Gi
+
+caddy:
+  enabled: true
+  image: caddy:2-alpine
+  service:
+    type: ClusterIP
+    port: 8088
+  ingress:
+    enabled: false
+    className: ""
+    host: digiabd.local
+    tls: []
+  config: |
+    :8088 {
+      encode gzip zstd
+      @api path /api/* /health /docs* /docs/*
+      handle @api {
+        reverse_proxy {{ .Release.Name }}-digiabd-api:3000
+      }
+      @keycloak path /auth/* /realms/* /resources/* /js/* /robots.txt
+      handle @keycloak {
+        reverse_proxy {{ .Release.Name }}-digiabd-keycloak:8080
+      }
+      @signoz path /signoz/*
+      handle @signoz {
+        reverse_proxy {{ .Release.Name }}-digiabd-signoz:8080
+      }
+      handle {
+        respond "Digital ABD reverse proxy is running" 200
+      }
+    }
