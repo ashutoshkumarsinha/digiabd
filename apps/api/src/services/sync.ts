@@ -43,7 +43,7 @@ export async function processSyncBatch(
       try {
         const result = await processItem(client, item);
         results.push(result);
-      } catch (error) {
+      } catch (error: any) {
         results.push({
           client_id: item.client_id,
           status: 'error',
@@ -64,7 +64,7 @@ export async function processSyncBatch(
 
     await client.query('COMMIT');
     return { batch_id: batchId, results, success_count: successCount, error_count: errorCount };
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     throw error;
   } finally {

@@ -145,7 +145,7 @@ export async function buildApp(config: AppConfig) {
   await registerGovernanceRoutes(app, pool, config);
 
   // Uniform RFC7807 error response contract.
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler((error: any, request, reply) => {
     request.log.error(error);
     recordOtelLog({
       severityText: 'ERROR',

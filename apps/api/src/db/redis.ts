@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import type { AppConfig } from '../config.js';
 
 let redis: Redis | null = null;

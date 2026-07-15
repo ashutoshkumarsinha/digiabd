@@ -1,7 +1,12 @@
-import type { AbdEventType } from './events.js';
+export type AbdEventType =
+  | "abd.segment.created"
+  | "abd.segment.completed"
+  | "abd.segment.submitted"
+  | "abd.deviation.created"
+  | "abd.deviation.approved"
+  | "abd.asset.updated";
 
-export type { AbdEventType };
-
+export * from "./events.js";
 export interface SegmentEventPayload {
   segment_id: string;
   route_id: string;

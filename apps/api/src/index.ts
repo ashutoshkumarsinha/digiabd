@@ -29,7 +29,7 @@ async function main() {
     await app.listen({ port: config.PORT, host: '0.0.0.0' });
     app.log.info(`Digital ABD API listening on http://localhost:${config.PORT}`);
     app.log.info(`API docs available at http://localhost:${config.PORT}/docs`);
-  } catch (error) {
+  } catch (error: any) {
     app.log.error(error);
     process.exit(1);
   }
