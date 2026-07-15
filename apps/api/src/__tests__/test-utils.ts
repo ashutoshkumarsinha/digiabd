@@ -29,6 +29,9 @@ export function makeTestConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     OTEL_EXPORTER_OTLP_HEADERS: undefined,
     OTEL_METRIC_EXPORT_INTERVAL_MS: 10000,
     ...overrides,
+    RATE_LIMIT_MAX: 100,
+    RATE_LIMIT_WINDOW_SECONDS: 60,
+
   };
 }
 

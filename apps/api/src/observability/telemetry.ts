@@ -1,7 +1,8 @@
 import { logs } from '@opentelemetry/api-logs';
 import { metrics, ValueType, type Counter, type Histogram } from '@opentelemetry/api';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import { ATTR_DEPLOYMENT_ENVIRONMENT_NAME } from '@opentelemetry/semantic-conventions/incubating';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -36,9 +37,9 @@ export async function initObservability(config: AppConfig): Promise<void> {
   if (!config.OTEL_ENABLED) return;
 
   const resource = resourceFromAttributes({
-    [SemanticResourceAttributes.SERVICE_NAME]: config.OTEL_SERVICE_NAME,
-    [SemanticResourceAttributes.SERVICE_VERSION]: config.OTEL_SERVICE_VERSION,
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: config.NODE_ENV,
+    [ATTR_SERVICE_NAME]: config.OTEL_SERVICE_NAME,
+    [ATTR_SERVICE_VERSION]: config.OTEL_SERVICE_VERSION,
+    [ATTR_DEPLOYMENT_ENVIRONMENT_NAME]: config.NODE_ENV,
   });
 
   const exporterHeaders = parseHeaders(config.OTEL_EXPORTER_OTLP_HEADERS);
@@ -75,8 +76,10 @@ export async function initObservability(config: AppConfig): Promise<void> {
 
   await sdk.start();
 
-  loggerProvider = new LoggerProvider({ resource });
-  loggerProvider.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter));
+  loggerProvider = new LoggerProvider({
+    resource,
+    processors: [new BatchLogRecordProcessor({ exporter: logExporter })],
+  });
   logs.setGlobalLoggerProvider(loggerProvider);
   otelLogger = logs.getLogger(config.OTEL_SERVICE_NAME);
 

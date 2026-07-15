@@ -75,7 +75,7 @@ export async function registerDeviationRoutes(app: FastifyInstance, pool: pg.Poo
             body.comments,
           ),
         );
-      } catch (error) {
+      } catch (error: any) {
         return reply.status(409).send({
           type: 'https://digiabd.io/errors/conflict',
           title: 'Approval Conflict',

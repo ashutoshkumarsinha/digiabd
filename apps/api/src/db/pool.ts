@@ -1,5 +1,6 @@
 import pg from 'pg';
-import type { AppConfig } from './config.js';
+// import type { AppConfig } from './config.js';
+import type { AppConfig } from '../config.js';
 
 const { Pool } = pg;
 
@@ -25,7 +26,7 @@ export async function withOrgContext<T>(
     const result = await fn(client);
     await client.query('COMMIT');
     return result;
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     throw error;
   } finally {
